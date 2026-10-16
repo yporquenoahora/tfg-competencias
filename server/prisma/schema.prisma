@@ -1,0 +1,26 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Competencia {
+  id          Int         @id @default(autoincrement())
+  nombre      String
+  descripcion String?
+  creadaEn    DateTime    @default(now())
+
+  indicadores Indicador[]
+}
+
+model Indicador {
+  id            Int         @id @default(autoincrement())
+  descripcion   String
+  creadoEn      DateTime    @default(now())
+
+  competenciaId Int
+  competencia   Competencia @relation(fields: [competenciaId], references: [id], onDelete: Cascade)
+}
