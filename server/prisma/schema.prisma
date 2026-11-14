@@ -57,10 +57,11 @@ model Indicador {
   competencia   Competencia @relation(fields: [competenciaId], references: [id], onDelete: Cascade)
 
   // Nueva relacion, opcional durante la transicion
-  dimensionId Int?
-  dimension   Dimension?              @relation(fields: [dimensionId], references: [id], onDelete: Restrict)
-  selecciones IndicadorSeleccionado[]
-  valoraciones Valoracion[]
+  dimensionId    Int?
+  dimension      Dimension?              @relation(fields: [dimensionId], references: [id], onDelete: Restrict)
+  selecciones    IndicadorSeleccionado[]
+  valoraciones   Valoracion[]
+  planesRefuerzo PlanRefuerzo[]
 }
 
 model ConfiguracionSeguimiento {
@@ -84,7 +85,6 @@ model IndicadorSeleccionado {
   @@unique([configuracionId, indicadorId])
 }
 
-
 model Grupo {
   id          Int      @id @default(autoincrement())
   nombre      String
@@ -93,17 +93,18 @@ model Grupo {
   creadoEn    DateTime @default(now())
 
   matriculas    Matricula[]
-  imparticiones ImparticionModulo[]  
+  imparticiones ImparticionModulo[]
 }
 
 model Estudiante {
-  id        Int      @id @default(autoincrement())
-  codigo    String   @unique
-  nombre    String
-  creadoEn  DateTime @default(now())
+  id       Int      @id @default(autoincrement())
+  codigo   String   @unique
+  nombre   String
+  creadoEn DateTime @default(now())
 
-  matriculas Matricula[]
-  valoraciones Valoracion[]
+  matriculas     Matricula[]
+  valoraciones   Valoracion[]
+  planesRefuerzo PlanRefuerzo[]
 }
 
 model Matricula {
@@ -125,10 +126,10 @@ model ImparticionModulo {
   grupoId      Int
   creadoEn     DateTime @default(now())
 
-  grupo Grupo @relation(fields: [grupoId], references: [id], onDelete: Restrict)
-  valoraciones Valoracion[]
+  grupo          Grupo          @relation(fields: [grupoId], references: [id], onDelete: Restrict)
+  valoraciones   Valoracion[]
+  planesRefuerzo PlanRefuerzo[]
 }
-
 
 model Valoracion {
   id            Int      @id @default(autoincrement())
@@ -145,4 +146,27 @@ model Valoracion {
 
   @@index([estudianteId, indicadorId, fecha])
   @@index([imparticionId, fecha])
+}
+
+model PlanRefuerzo {
+  id            Int @id @default(autoincrement())
+  estudianteId  Int
+  indicadorId   Int
+  imparticionId Int
+
+  objetivo      String
+  descripcion   String
+  fechaInicio   DateTime  @default(now())
+  fechaRevision DateTime?
+  estado        String    @default("pendiente")
+
+  creadoEn      DateTime @default(now())
+  actualizadoEn DateTime @updatedAt
+
+  estudiante  Estudiante        @relation(fields: [estudianteId], references: [id], onDelete: Restrict)
+  indicador   Indicador         @relation(fields: [indicadorId], references: [id], onDelete: Restrict)
+  imparticion ImparticionModulo @relation(fields: [imparticionId], references: [id], onDelete: Restrict)
+
+  @@index([estudianteId, indicadorId])
+  @@index([imparticionId, estado])
 }

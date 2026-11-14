@@ -509,6 +509,178 @@ res.json({
 });
 
 
+app.post('/api/planes-refuerzo', async (req, res) => {
+  try {
+    const {
+      estudianteId,
+      indicadorId,
+      imparticionId,
+      objetivo,
+      descripcion,
+      fechaRevision
+    } = req.body ?? {};
+
+    // 1. Validar identificadores
+    const ids = [estudianteId, indicadorId, imparticionId];
+
+    if (!ids.every(id => Number.isInteger(id) && id > 0)) {
+      return res.status(400).json({
+        error: 'Los identificadores deben ser enteros positivos'
+      });
+    }
+
+    // 2. Validar campos obligatorios
+    if (
+      typeof objetivo !== 'string' ||
+      !objetivo.trim() ||
+      typeof descripcion !== 'string' ||
+      !descripcion.trim()
+    ) {
+      return res.status(400).json({
+        error: 'El objetivo y la descripción son obligatorios'
+      });
+    }
+
+    // 3. Validar fecha de revisión
+    let fechaRevisionDate = null;
+
+    if (fechaRevision != null && fechaRevision !== '') {
+      if (
+        typeof fechaRevision !== 'string' ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(fechaRevision)
+      ) {
+        return res.status(400).json({
+          error: 'La fecha debe tener formato AAAA-MM-DD'
+        });
+      }
+
+      fechaRevisionDate = new Date(`${fechaRevision}T12:00:00.000Z`);
+
+      if (
+        Number.isNaN(fechaRevisionDate.getTime()) ||
+        fechaRevisionDate.toISOString().slice(0, 10) !== fechaRevision
+      ) {
+        return res.status(400).json({
+          error: 'Fecha de revisión no válida'
+        });
+      }
+    }
+
+    // 4. Comprobar registros relacionados
+    const [estudiante, indicador, imparticion] = await Promise.all([
+      prisma.estudiante.findUnique({
+        where: { id: estudianteId }
+      }),
+      prisma.indicador.findUnique({
+        where: { id: indicadorId }
+      }),
+      prisma.imparticionModulo.findUnique({
+        where: { id: imparticionId }
+      })
+    ]);
+
+    if (!estudiante || !indicador || !imparticion) {
+      return res.status(404).json({
+        error: 'Estudiante, indicador o impartición inexistente'
+      });
+    }
+
+    // 5. Comprobar pertenencia al grupo
+    const matricula = await prisma.matricula.findFirst({
+      where: {
+        estudianteId,
+        grupoId: imparticion.grupoId
+      }
+    });
+
+    if (!matricula) {
+      return res.status(400).json({
+        error: 'El estudiante no pertenece al grupo de la impartición'
+      });
+    }
+
+    // 6. Crear plan
+    const plan = await prisma.planRefuerzo.create({
+      data: {
+        estudianteId,
+        indicadorId,
+        imparticionId,
+        objetivo: objetivo.trim(),
+        descripcion: descripcion.trim(),
+        fechaRevision: fechaRevisionDate,
+        estado: 'pendiente'
+      },
+      include: {
+        estudiante: true,
+        indicador: true,
+        imparticion: true
+      }
+    });
+
+    res.status(201).json(plan);
+
+  } catch (error) {
+    console.error('Error al crear plan de refuerzo:', error);
+
+    res.status(500).json({
+      error: 'No se pudo crear el plan de refuerzo'
+    });
+  }
+});
+
+
+
+app.get('/api/estudiantes/:id/planes-refuerzo', async (req, res) => {
+  try {
+    const estudianteId = Number(req.params.id);
+
+    if (!Number.isInteger(estudianteId) || estudianteId <= 0) {
+      return res.status(400).json({
+        error: 'Identificador de estudiante no válido'
+      });
+    }
+
+    const estudiante = await prisma.estudiante.findUnique({
+      where: { id: estudianteId }
+    });
+
+    if (!estudiante) {
+      return res.status(404).json({
+        error: 'Estudiante no encontrado'
+      });
+    }
+
+    const planes = await prisma.planRefuerzo.findMany({
+      where: { estudianteId },
+      include: {
+        indicador: true,
+        imparticion: true
+      },
+      orderBy: [
+        { creadoEn: 'desc' },
+        { id: 'desc' }
+      ]
+    });
+
+    res.json({
+      estudiante: {
+        id: estudiante.id,
+        codigo: estudiante.codigo,
+        nombre: estudiante.nombre
+      },
+      planes
+    });
+
+  } catch (error) {
+    console.error('Error al consultar planes de refuerzo:', error);
+
+    res.status(500).json({
+      error: 'No se pudieron consultar los planes de refuerzo'
+    });
+  }
+});
+
+
 // Iniciar servidor HTTP
 app.listen(PORT, () => {
   console.log(`API disponible en http://localhost:${PORT}`);
