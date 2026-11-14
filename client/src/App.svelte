@@ -5,8 +5,17 @@
   import DashboardGrupal from './components/DashboardGrupal.svelte';
   import Evolucion from './components/Evolucion.svelte';
   import PlanesRefuerzo from './components/PlanesRefuerzo.svelte';
+  import SeguimientoIndividual from './components/SeguimientoIndividual.svelte';
+  import { crearPlanRefuerzo } from './lib/planesRefuerzo.js';
   import './app.css';
 
+  import {
+  obtenerGrupo,
+  obtenerHistorial,
+  obtenerSeguimientoGrupal,
+  registrarValoracion
+} from './lib/seguimiento.js';
+import { obtenerPlanesRefuerzo } from './lib/planesRefuerzo.js';
   let catalogo;
   let competencias=[], configuraciones=[], grupo=null, estudiantes=[], imparticiones=[];
   let seleccionados=[], estudianteElegido='', imparticionElegida='';
@@ -21,7 +30,25 @@
   const indicadoresDe = c => (c.dimensiones??[]).flatMap(d=>d.indicadores??[]);
   $: evaluables=competencias.flatMap(indicadoresDe).filter(i=>seleccionados.includes(i.id));
   $: if (indicadorValoracion && !evaluables.some(i=>String(i.id)===indicadorValoracion)) indicadorValoracion='';
-  $: historialModulo=historial.filter(v=>v.imparticionId===Number(imparticionElegida));
+  async function guardarPlan(datos) {
+  const estudianteIdActual = Number(estudianteElegido);
+  const imparticionIdActual = Number(imparticionElegida);
+
+  if (
+    datos.estudianteId !== estudianteIdActual ||
+    datos.imparticionId !== imparticionIdActual
+  ) {
+    throw new Error('La selección ha cambiado. Revisa el estudiante y el módulo.');
+  }
+
+  const nuevoPlan = await crearPlanRefuerzo(datos);
+
+  if (Number(estudianteElegido) === estudianteIdActual) {
+    await seleccionarEstudiante(estudianteIdActual);
+  }
+
+  return nuevoPlan;
+}
 
   async function cargarCatalogo() {
     cargandoCatalogo=true; errorCatalogo='';
@@ -35,7 +62,7 @@
   async function cargarGrupo() {
     cargandoGrupo=true; errorGrupo='';
     try {
-      grupo=await api('/grupos/1/estudiantes');
+      grupo = await obtenerGrupo(1);
       estudiantes=grupo.estudiantes??[]; imparticiones=grupo.imparticiones??[];
       imparticionElegida=imparticiones.length?String(imparticiones[0].id):'';
       await Promise.all([seleccionarEstudiante(estudiantes[0]?.id??''),cargarSeguimiento()]);
@@ -48,13 +75,21 @@
     const actual=++solicitudEstudiante;
     if (!estudianteElegido) return;
     cargandoHistorial=true; cargandoPlanes=true;
-    const [h,p]=await Promise.allSettled([
-      api(`/estudiantes/${estudianteElegido}/valoraciones`),
-      api(`/estudiantes/${estudianteElegido}/planes-refuerzo`)
-    ]);
+    const [h, p] = await Promise.allSettled([
+  obtenerHistorial(estudianteElegido),
+  obtenerPlanesRefuerzo(estudianteElegido)
+]);
     if (actual!==solicitudEstudiante) return;
-    if(h.status==='fulfilled') historial=h.value.valoraciones??[]; else errorHistorial=h.reason.message;
-    if(p.status==='fulfilled') planes=p.value.planes??[]; else errorPlanes=p.reason.message;
+    if (h.status === 'fulfilled') {
+  historial = h.value;
+} else {
+  errorHistorial = h.reason.message;
+}
+    if (p.status === 'fulfilled') {
+  planes = p.value;
+} else {
+  errorPlanes = p.reason.message;
+}
     cargandoHistorial=false; cargandoPlanes=false;
   }
   async function cargarSeguimiento() {
@@ -62,7 +97,7 @@
     const id=imparticionElegida, actual=++solicitudSeguimiento;
     if(!id) return;
     cargandoSeguimiento=true;
-    try { const datos=await api(`/imparticiones/${id}/seguimiento`); if(actual===solicitudSeguimiento) seguimiento=datos; }
+    try {const datos = await obtenerSeguimientoGrupal(id);if(actual===solicitudSeguimiento) seguimiento=datos; }
     catch(e) { if(actual===solicitudSeguimiento) errorSeguimiento=e.message; }
     finally { if(actual===solicitudSeguimiento) cargandoSeguimiento=false; }
   }
@@ -77,7 +112,13 @@
     }
     guardandoValoracion=true;
     try {
-      await api('/valoraciones',{method:'POST',body:JSON.stringify({estudianteId,imparticionId,indicadorId,nivel,observacion:observacionValoracion.trim()})});
+      await registrarValoracion({
+  estudianteId,
+  imparticionId,
+  indicadorId,
+  nivel,
+  observacion: observacionValoracion.trim()
+});
       observacionValoracion=''; nivelValoracion=''; mensajeValoracion='Valoración registrada correctamente';
       await Promise.all([seleccionarEstudiante(estudianteId),cargarSeguimiento()]);
     } catch(e) { errorValoracion=e.message; } finally { guardandoValoracion=false; }
@@ -89,29 +130,46 @@
   <header><span class="etiqueta">TFE · FORMACIÓN PROFESIONAL</span><h1>Configuración del seguimiento</h1><p>Selecciona competencias, observa indicadores y planifica intervenciones docentes.</p></header>
   <Catalogo bind:this={catalogo} {competencias} {configuraciones} bind:seleccionados cargando={cargandoCatalogo} error={errorCatalogo} onGuardar={guardarConfiguracion}/>
   <section class="panel" id="seguimiento-individual">
-    <h2>Seguimiento del alumnado</h2>
-    {#if cargandoGrupo}<p>Cargando estudiantes...</p>
-    {:else if errorGrupo}<p class="error" role="alert">{errorGrupo}</p><button onclick={cargarGrupo}>Reintentar</button>
-    {:else if grupo}
-      <p><strong>{grupo.nombre}</strong> · Curso {grupo.curso} · {estudiantes.length} estudiantes</p>
-      <div class="formulario"><label for="imparticion">Módulo profesional</label><select id="imparticion" bind:value={imparticionElegida} onchange={cambiarModulo}>{#each imparticiones as i (i.id)}<option value={String(i.id)}>{i.nombreModulo}</option>{/each}</select>
-      <label for="estudiante">Estudiante</label><select id="estudiante" bind:value={estudianteElegido} onchange={() => seleccionarEstudiante(estudianteElegido)}>{#each estudiantes as e (e.id)}<option value={String(e.id)}>{e.codigo} — {e.nombre}</option>{/each}</select></div>
-      <div class="subpanel"><h3>Nueva valoración</h3>
-        <div class="formulario"><label for="configuracion-evaluacion">Configuración de indicadores</label><select id="configuracion-evaluacion" bind:value={configuracionEvaluacion} onchange={recuperarConfiguracion}><option value="">Selecciona una configuración guardada</option>{#each configuraciones as c (c.id)}<option value={String(c.id)}>{c.nombre} ({c.indicadores.length} indicadores)</option>{/each}</select></div>
-        {#if !evaluables.length}<p>Selecciona indicadores en el catálogo o recupera una configuración guardada.</p>
-        {:else}<div class="formulario"><label for="indicador-valoracion">Indicador que deseas evaluar</label><select id="indicador-valoracion" bind:value={indicadorValoracion}><option value="">Selecciona un indicador</option>{#each evaluables as i (i.id)}<option value={String(i.id)}>{i.descripcion}</option>{/each}</select>
-          <label for="nivel-valoracion">Nivel observado</label><select id="nivel-valoracion" bind:value={nivelValoracion}><option value="">Selecciona un nivel</option><option value="1">1 — No demuestra el desempeño esperado</option><option value="2">2 — Necesita apoyo frecuente</option><option value="3">3 — Trabaja con autonomía</option><option value="4">4 — Desempeño consistente y autónomo</option></select>
-          <label for="observacion-valoracion">Observación docente</label><textarea id="observacion-valoracion" rows="3" bind:value={observacionValoracion} placeholder="Describe el comportamiento observado..."></textarea>
-          <button onclick={guardarValoracion} disabled={guardandoValoracion||!estudianteElegido||!imparticionElegida||!indicadorValoracion||!nivelValoracion}>{guardandoValoracion?'Guardando...':'Registrar valoración'}</button></div>{/if}
-        {#if mensajeValoracion}<p class="exito" role="status">{mensajeValoracion}</p>{/if}{#if errorValoracion}<p class="error" role="alert">{errorValoracion}</p>{/if}
-      </div>
-      <div class="subpanel"><h3>Historial de valoraciones</h3>
-        {#if cargandoHistorial}<p>Cargando historial...</p>{:else if errorHistorial}<p class="error" role="alert">{errorHistorial}</p>{:else if !historialModulo.length}<p>Este estudiante todavía no tiene valoraciones en este módulo.</p>
-        {:else}<div class="lista">{#each historialModulo as v (v.id)}<article class="registro"><div class="cabecera"><strong>{v.indicador.descripcion}</strong><span class="contador">Nivel {v.nivel}/4</span></div><small>{new Date(v.fecha).toLocaleString('es-ES')}</small>{#if v.observacion}<p>{v.observacion}</p>{/if}</article>{/each}</div>{/if}
-      </div>
-      <Evolucion {historial} imparticionId={imparticionElegida}/>
-      <PlanesRefuerzo {planes} cargando={cargandoPlanes} error={errorPlanes} estudianteId={estudianteElegido} imparticionId={imparticionElegida}/>
-    {:else}<p>No hay datos del grupo disponibles.</p>{/if}
+    
+{#if cargandoGrupo}
+  <section class="panel">
+    <p>Cargando estudiantes...</p>
+  </section>
+{:else if errorGrupo}
+  <section class="panel">
+    <p class="error" role="alert">{errorGrupo}</p>
+    <button onclick={cargarGrupo}>Reintentar</button>
+  </section>
+{:else}
+  <SeguimientoIndividual
+    {grupo}
+    {estudiantes}
+    {imparticiones}
+    {configuraciones}
+    {evaluables}
+    bind:estudianteElegido
+    bind:imparticionElegida
+    bind:configuracionEvaluacion
+    bind:indicadorValoracion
+    bind:nivelValoracion
+    bind:observacionValoracion
+    {historial}
+    {planes}
+    {cargandoHistorial}
+    {cargandoPlanes}
+    {errorHistorial}
+    {errorPlanes}
+    {guardandoValoracion}
+    {mensajeValoracion}
+    {errorValoracion}
+    {seleccionarEstudiante}
+    {cambiarModulo}
+    {recuperarConfiguracion}
+    {guardarValoracion}
+    {guardarPlan}
+  />
+{/if}
+
   </section>
   <DashboardGrupal {seguimiento} cargando={cargandoSeguimiento} error={errorSeguimiento} actualizar={cargarSeguimiento} verEstudiante={(id,indicadorId) => { seleccionarEstudiante(id,indicadorId); document.getElementById('seguimiento-individual')?.scrollIntoView({behavior:'smooth'}); }}/>
 </main>
