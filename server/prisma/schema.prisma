@@ -60,6 +60,7 @@ model Indicador {
   dimensionId Int?
   dimension   Dimension?              @relation(fields: [dimensionId], references: [id], onDelete: Restrict)
   selecciones IndicadorSeleccionado[]
+  valoraciones Valoracion[]
 }
 
 model ConfiguracionSeguimiento {
@@ -81,4 +82,67 @@ model IndicadorSeleccionado {
   indicador     Indicador                @relation(fields: [indicadorId], references: [id], onDelete: Restrict)
 
   @@unique([configuracionId, indicadorId])
+}
+
+
+model Grupo {
+  id          Int      @id @default(autoincrement())
+  nombre      String
+  curso       String
+  descripcion String?
+  creadoEn    DateTime @default(now())
+
+  matriculas    Matricula[]
+  imparticiones ImparticionModulo[]  
+}
+
+model Estudiante {
+  id        Int      @id @default(autoincrement())
+  codigo    String   @unique
+  nombre    String
+  creadoEn  DateTime @default(now())
+
+  matriculas Matricula[]
+  valoraciones Valoracion[]
+}
+
+model Matricula {
+  id           Int      @id @default(autoincrement())
+  estudianteId Int
+  grupoId      Int
+  fechaAlta    DateTime @default(now())
+
+  estudiante Estudiante @relation(fields: [estudianteId], references: [id], onDelete: Restrict)
+  grupo      Grupo      @relation(fields: [grupoId], references: [id], onDelete: Restrict)
+
+  @@unique([estudianteId, grupoId])
+}
+
+model ImparticionModulo {
+  id           Int      @id @default(autoincrement())
+  nombreModulo String
+  curso        String
+  grupoId      Int
+  creadoEn     DateTime @default(now())
+
+  grupo Grupo @relation(fields: [grupoId], references: [id], onDelete: Restrict)
+  valoraciones Valoracion[]
+}
+
+
+model Valoracion {
+  id            Int      @id @default(autoincrement())
+  estudianteId  Int
+  indicadorId   Int
+  imparticionId Int
+  nivel         Int
+  observacion   String?
+  fecha         DateTime @default(now())
+
+  estudiante  Estudiante        @relation(fields: [estudianteId], references: [id], onDelete: Restrict)
+  indicador   Indicador         @relation(fields: [indicadorId], references: [id], onDelete: Restrict)
+  imparticion ImparticionModulo @relation(fields: [imparticionId], references: [id], onDelete: Restrict)
+
+  @@index([estudianteId, indicadorId, fecha])
+  @@index([imparticionId, fecha])
 }

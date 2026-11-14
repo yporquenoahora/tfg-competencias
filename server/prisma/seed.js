@@ -87,6 +87,77 @@ async function main() {
       }
     }
   }
+  
+const nombreGrupo = '1º DAW A';
+const cursoAcademico = '2026/2027';
+
+// Crear o recuperar el grupo de demostración.
+let grupo = await prisma.grupo.findFirst({
+  where: {
+    nombre: nombreGrupo,
+    curso: cursoAcademico
+  }
+});
+
+if (!grupo) {
+  grupo = await prisma.grupo.create({
+    data: {
+      nombre: nombreGrupo,
+      curso: cursoAcademico,
+      descripcion: 'Grupo sintético para pruebas del TFE'
+    }
+  });
+}
+
+// Crear la impartición del módulo si todavía no existe.
+const imparticionExistente = await prisma.imparticionModulo.findFirst({
+  where: {
+    grupoId: grupo.id,
+    nombreModulo: 'Lenguajes de Marcas',
+    curso: cursoAcademico
+  }
+});
+
+if (!imparticionExistente) {
+  await prisma.imparticionModulo.create({
+    data: {
+      nombreModulo: 'Lenguajes de Marcas',
+      curso: cursoAcademico,
+      grupoId: grupo.id
+    }
+  });
+}
+
+// Crear 20 estudiantes ficticios y matricularlos.
+for (let numero = 1; numero <= 20; numero++) {
+  const codigo = `DEMO-${String(numero).padStart(3, '0')}`;
+
+  const estudiante = await prisma.estudiante.upsert({
+    where: { codigo },
+    update: {},
+    create: {
+      codigo,
+      nombre: `Estudiante ${String(numero).padStart(2, '0')}`
+    }
+  });
+
+  await prisma.matricula.upsert({
+    where: {
+      estudianteId_grupoId: {
+        estudianteId: estudiante.id,
+        grupoId: grupo.id
+      }
+    },
+    update: {},
+    create: {
+      estudianteId: estudiante.id,
+      grupoId: grupo.id
+    }
+  });
+}
+
+console.log('Grupo de demostración y 20 estudiantes preparados');
+
 
   console.log('Datos sintéticos cargados correctamente.');
   console.log(`Competencia: ${competencia.nombre}`);
