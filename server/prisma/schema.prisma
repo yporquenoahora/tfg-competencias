@@ -62,6 +62,7 @@ model Indicador {
   selecciones    IndicadorSeleccionado[]
   valoraciones   Valoracion[]
   planesRefuerzo PlanRefuerzo[]
+  rubricas RubricaIndicador[]
 }
 
 model ConfiguracionSeguimiento {
@@ -105,6 +106,7 @@ model Estudiante {
   matriculas     Matricula[]
   valoraciones   Valoracion[]
   planesRefuerzo PlanRefuerzo[]
+  evidencias Evidencia[]
 }
 
 model Matricula {
@@ -129,24 +131,36 @@ model ImparticionModulo {
   grupo          Grupo          @relation(fields: [grupoId], references: [id], onDelete: Restrict)
   valoraciones   Valoracion[]
   planesRefuerzo PlanRefuerzo[]
+  actividades Actividad[]
 }
 
 model Valoracion {
-  id            Int      @id @default(autoincrement())
-  estudianteId  Int
-  indicadorId   Int
-  imparticionId Int
-  nivel         Int
-  observacion   String?
-  fecha         DateTime @default(now())
+  id                 Int      @id @default(autoincrement())
+  estudianteId       Int
+  indicadorId        Int
+  imparticionId      Int
+  nivel              Int
+  observacion        String?
+  fecha              DateTime @default(now())
+
+  // Trazabilidad de la evaluación
+  rubricaId          Int?
+  descriptorAplicado String?
 
   estudiante  Estudiante        @relation(fields: [estudianteId], references: [id], onDelete: Restrict)
   indicador   Indicador         @relation(fields: [indicadorId], references: [id], onDelete: Restrict)
   imparticion ImparticionModulo @relation(fields: [imparticionId], references: [id], onDelete: Restrict)
 
+  rubrica Rubrica? @relation(fields: [rubricaId], references: [id], onDelete: Restrict)
+
   @@index([estudianteId, indicadorId, fecha])
   @@index([imparticionId, fecha])
+  @@index([rubricaId])
+  evidenciaId Int?
+
+evidencia Evidencia? @relation(fields: [evidenciaId],references: [id],onDelete: Restrict)
 }
+
 
 model PlanRefuerzo {
   id            Int @id @default(autoincrement())
@@ -169,4 +183,70 @@ model PlanRefuerzo {
 
   @@index([estudianteId, indicadorId])
   @@index([imparticionId, estado])
+}
+
+model Rubrica {
+  id          Int      @id @default(autoincrement())
+  nombre      String
+  descripcion String?
+  creadaEn    DateTime @default(now())
+
+  niveles     NivelDesempeno[]
+  indicadores RubricaIndicador[]
+  valoraciones Valoracion[]
+}
+
+model NivelDesempeno {
+  id          Int @id @default(autoincrement())
+  rubricaId   Int
+  valor       Int
+  descripcion String
+
+  rubrica Rubrica @relation(fields: [rubricaId],references: [id],onDelete: Cascade)
+
+  @@unique([rubricaId, valor])
+}
+
+model RubricaIndicador {
+  id          Int @id @default(autoincrement())
+  rubricaId   Int
+  indicadorId Int
+
+  rubrica Rubrica @relation(fields: [rubricaId],references: [id],onDelete: Cascade)
+
+  indicador Indicador @relation(fields: [indicadorId],references: [id],onDelete: Restrict)
+
+  @@unique([rubricaId, indicadorId])
+}
+
+model Actividad {
+  id             Int       @id @default(autoincrement())
+  imparticionId  Int
+  titulo         String
+  descripcion    String?
+  fechaPropuesta DateTime  @default(now())
+  fechaEntrega   DateTime?
+
+  imparticion ImparticionModulo @relation(fields: [imparticionId],references: [id],onDelete: Restrict)
+
+  evidencias Evidencia[]
+
+  @@index([imparticionId])
+}
+
+model Evidencia {
+  id            Int      @id @default(autoincrement())
+  actividadId   Int
+  estudianteId  Int
+  descripcion   String
+  referencia    String?
+  fechaRegistro DateTime @default(now())
+
+  actividad Actividad @relation(fields: [actividadId],references: [id],onDelete: Restrict)
+
+  estudiante Estudiante @relation(fields: [estudianteId],references: [id],onDelete: Restrict)
+
+  valoraciones Valoracion[]
+
+  @@index([actividadId, estudianteId])
 }

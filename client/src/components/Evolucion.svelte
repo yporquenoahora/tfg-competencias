@@ -2,41 +2,56 @@
   export let historial = [];
   export let imparticionId = '';
   let indicadorElegido = '';
-  const W = 680, H = 260, m = { l: 48, r: 24, t: 20, b: 45 };
+  const W = 600, H = 190, m = { l: 32, r: 15, t: 14, b: 27 };
   const y = nivel => m.t + (4 - nivel) * (H - m.t - m.b) / 3;
-  const x = (i, n) => n <= 1 ? (W + m.l - m.r) / 2 : m.l + i * (W - m.l - m.r) / (n - 1);
-  $: indicadores = [...new Map(historial.filter(v => v.imparticionId === Number(imparticionId)).map(v => [v.indicadorId, { id: v.indicadorId, nombre: v.indicador.descripcion }])).values()];
+  const x = (i, n) => n <= 1 ? (m.l + W - m.r) / 2 : m.l + i * (W - m.l - m.r) / (n - 1);
+  $: historialModulo = historial.filter(v => Number(v.imparticionId) === Number(imparticionId));
+  $: indicadores = [...new Map(historialModulo.filter(v => v.indicador).map(v => [v.indicadorId, { id: v.indicadorId, nombre: v.indicador.descripcion }])).values()];
   $: if (indicadorElegido && !indicadores.some(i => String(i.id) === indicadorElegido)) indicadorElegido = '';
-  $: valoraciones = historial.filter(v => v.imparticionId === Number(imparticionId) && v.indicadorId === Number(indicadorElegido)).sort((a,b) => new Date(a.fecha) - new Date(b.fecha) || a.id - b.id);
-  $: puntos = valoraciones.map((v,i) => ({...v, x:x(i,valoraciones.length), y:y(v.nivel)}));
-  $: trazado = puntos.map((p,i) => `${i ? 'L' : 'M'} ${p.x} ${p.y}`).join(' ');
+  $: indicadorActivo = indicadorElegido || (indicadores[0] ? String(indicadores[0].id) : '');
+  $: valoraciones = historialModulo.filter(v => Number(v.indicadorId) === Number(indicadorActivo)).sort((a, b) => new Date(a.fecha) - new Date(b.fecha) || a.id - b.id);
+  $: puntos = valoraciones.map((v, i) => ({ ...v, x: x(i, valoraciones.length), y: y(v.nivel) }));
+  $: trazado = puntos.map((p, i) => `${i ? 'L' : 'M'} ${p.x} ${p.y}`).join(' ');
 </script>
-<div class="subpanel">
-  <h3>Evolución individual por indicador</h3>
+
+<div class="evolucion-individual">
   <label for="indicador-grafico">Indicador que deseas analizar</label>
-  <select id="indicador-grafico" bind:value={indicadorElegido}>
-    <option value="">Selecciona un indicador</option>
-    {#each indicadores as indicador (indicador.id)}<option value={String(indicador.id)}>{indicador.nombre}</option>{/each}
+  <select id="indicador-grafico" value={indicadorActivo} onchange={event => indicadorElegido = event.currentTarget.value}>
+    {#each indicadores as indicador (indicador.id)}
+      <option value={String(indicador.id)}>{indicador.nombre}</option>
+    {/each}
   </select>
-  {#if !indicadorElegido}<p>Selecciona un indicador con valoraciones registradas.</p>
-  {:else if !puntos.length}<p>No hay observaciones para este indicador.</p>
+  {#if !indicadores.length}
+    <p class="nota">Todavía no hay valoraciones para este módulo.</p>
+  {:else if !puntos.length}
+    <p class="nota">No hay observaciones para este indicador.</p>
   {:else}
     <div class="grafico-contenedor">
-      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Evolución cronológica de niveles del indicador seleccionado">
-        {#each [1,2,3,4] as nivel}
-          <line x1={m.l} x2={W-m.r} y1={y(nivel)} y2={y(nivel)} stroke="#dbe3ed" stroke-dasharray="4 4" />
-          <text x={m.l-15} y={y(nivel)+5} text-anchor="end" font-size="14" fill="#526174">{nivel}</text>
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" role="img" aria-label="Evolución por orden de observación del indicador seleccionado, con niveles de uno a cuatro">
+        {#each [1, 2, 3, 4] as nivel}
+          <line x1={m.l} x2={W - m.r} y1={y(nivel)} y2={y(nivel)} stroke="#dbe3ed" stroke-dasharray="4 4" />
+          <text x={m.l - 10} y={y(nivel) + 4} text-anchor="end" font-size="12" fill="#526174">{nivel}</text>
         {/each}
-        {#if puntos.length > 1}<path d={trazado} fill="none" stroke="#205493" stroke-width="3" />{/if}
-        {#each puntos as p,i (p.id)}
-          <circle cx={p.x} cy={p.y} r="7" fill={p.nivel<=2?'#c47722':'#205493'} stroke="white" stroke-width="2"><title>{new Date(p.fecha).toLocaleString('es-ES')} — Nivel {p.nivel}/4</title></circle>
-          <text x={p.x} y={H-14} text-anchor="middle" font-size="12" fill="#526174">{i+1}</text>
+        {#if puntos.length > 1}<path d={trazado} fill="none" stroke="#205493" stroke-width="2.5" />{/if}
+        {#each puntos as p, i (p.id)}
+          <circle cx={p.x} cy={p.y} r="5" fill={p.nivel <= 2 ? '#c47722' : '#205493'} stroke="white" stroke-width="1.5">
+            <title>{new Date(p.fecha).toLocaleString('es-ES')} — Nivel {p.nivel}/4</title>
+          </circle>
+          {#if puntos.length <= 8 || i === 0 || i === puntos.length - 1}
+            <text x={p.x} y={H - 8} text-anchor="middle" font-size="11" fill="#526174">{i + 1}</text>
+          {/if}
         {/each}
       </svg>
     </div>
-    <p class="nota">Eje horizontal: orden de observaciones (no intervalos temporales proporcionales). Eje vertical: nivel de 1 a 4.</p>
-    <table><thead><tr><th>Observación</th><th>Fecha</th><th>Nivel</th></tr></thead><tbody>
-      {#each valoraciones as v,i (v.id)}<tr><td>{i+1}</td><td>{new Date(v.fecha).toLocaleString('es-ES')}</td><td>{v.nivel}/4</td></tr>{/each}
-    </tbody></table>
+    <p class="nota">Orden de observación · Nivel de 1 a 4. Consulta fechas y observaciones en «Ver todo».</p>
   {/if}
 </div>
+
+<style>
+  .evolucion-individual { min-width: 0; width: 100%; }
+  label { display: block; font-size: .88rem; font-weight: 600; margin-bottom: 5px; }
+  select { display: block; width: 100%; min-width: 0; box-sizing: border-box; padding: 9px 11px; border: 1px solid #b9cbe0; border-radius: 8px; background: #fff; color: #172b49; font: inherit; }
+  .grafico-contenedor { margin-top: 12px; width: 100%; min-width: 0; overflow: visible; padding: 6px; box-sizing: border-box; border: 1px solid #e2e8f0; border-radius: 9px; background: #f8fafd; }
+  .grafico-contenedor svg { display: block; width: 100%; height: auto; max-height: 190px; overflow: visible; }
+  .nota { margin: 8px 0 0; font-size: .76rem; line-height: 1.4; color: #52647d; }
+</style>
