@@ -94,10 +94,28 @@ app.post('/api/competencias', async (req, res) => {
 
 
 
+
 app.get('/api/configuraciones', async (req, res) => {
   try {
+    const imparticionId =
+      req.query.imparticionId !== undefined
+        ? Number(req.query.imparticionId)
+        : null;
+
+    if (
+      imparticionId !== null &&
+      (!Number.isInteger(imparticionId) || imparticionId <= 0)
+    ) {
+      return res.status(400).json({
+        error: 'Identificador de impartición no válido'
+      });
+    }
+
     const configuraciones =
       await prisma.configuracionSeguimiento.findMany({
+        where: imparticionId !== null
+          ? { imparticionId }
+          : {},
         include: {
           indicadores: {
             include: {
@@ -122,9 +140,10 @@ app.get('/api/configuraciones', async (req, res) => {
 
 
 
+
 app.post('/api/configuraciones', async (req, res) => {
   try {
-    const { nombre, descripcion, indicadorIds } = req.body ?? {};
+    const { nombre, descripcion, indicadorIds, imparticionId } = req.body ?? {};
 
     if (typeof nombre !== 'string' || !nombre.trim()) {
       return res.status(400).json({
@@ -154,6 +173,28 @@ app.post('/api/configuraciones', async (req, res) => {
       });
     }
 
+if (
+  imparticionId !== undefined &&
+  imparticionId !== null &&
+  (!Number.isInteger(imparticionId) || imparticionId <= 0)
+) {
+  return res.status(400).json({
+    error: 'Identificador de impartición no válido'
+  });
+}
+
+if (imparticionId != null) {
+  const imparticion = await prisma.imparticionModulo.findUnique({
+    where: { id: imparticionId }
+  });
+
+  if (!imparticion) {
+    return res.status(404).json({
+      error: 'La impartición seleccionada no existe'
+    });
+  }
+}
+
     const configuracion = await prisma.configuracionSeguimiento.create({
       data: {
         nombre: nombre.trim(),
@@ -167,7 +208,8 @@ app.post('/api/configuraciones', async (req, res) => {
               connect: { id: indicadorId }
             }
           }))
-        }
+        },
+        ...(imparticionId != null ? { imparticionId } : {}),
       },
       include: {
         indicadores: true
@@ -1081,17 +1123,17 @@ app.get('/api/valoraciones/:id/trazabilidad', async (req, res) => {
       descriptorAplicado: valoracion.descriptorAplicado,
       evidencia: valoracion.evidencia
         ? {
-            id: valoracion.evidencia.id,
-            descripcion: valoracion.evidencia.descripcion,
-            referencia: valoracion.evidencia.referencia,
-            fechaRegistro: valoracion.evidencia.fechaRegistro,
-            actividad: {
-              id: valoracion.evidencia.actividad.id,
-              titulo: valoracion.evidencia.actividad.titulo,
-              descripcion: valoracion.evidencia.actividad.descripcion,
-              fechaEntrega: valoracion.evidencia.actividad.fechaEntrega
-            }
+          id: valoracion.evidencia.id,
+          descripcion: valoracion.evidencia.descripcion,
+          referencia: valoracion.evidencia.referencia,
+          fechaRegistro: valoracion.evidencia.fechaRegistro,
+          actividad: {
+            id: valoracion.evidencia.actividad.id,
+            titulo: valoracion.evidencia.actividad.titulo,
+            descripcion: valoracion.evidencia.actividad.descripcion,
+            fechaEntrega: valoracion.evidencia.actividad.fechaEntrega
           }
+        }
         : null
     });
 
@@ -1177,6 +1219,318 @@ app.get('/api/evidencias', async (req, res) => {
     console.error('Error al consultar evidencias:', error);
     return res.status(500).json({
       error: 'No se pudieron consultar las evidencias'
+    });
+  }
+});
+
+
+app.post('/api/modulos/importar', async (req, res) => {
+  try {
+    const { codigo, nombre, descripcion, resultados } = req.body ?? {};
+
+    if (
+      typeof codigo !== 'string' || !codigo.trim() ||
+      typeof nombre !== 'string' || !nombre.trim() ||
+      !Array.isArray(resultados) || resultados.length === 0
+    ) {
+      return res.status(400).json({
+        error: 'Se requiere código, nombre y al menos un RA'
+      });
+    }
+
+    if (
+      resultados.some(ra =>
+        typeof ra.codigo !== 'string' || !ra.codigo.trim() ||
+        typeof ra.texto !== 'string' || !ra.texto.trim() ||
+        !Array.isArray(ra.criterios) ||
+        ra.criterios.some(ce =>
+          typeof ce.codigo !== 'string' || !ce.codigo.trim() ||
+          typeof ce.texto !== 'string' || !ce.texto.trim()
+        ) ||
+        new Set(ra.criterios.map(ce => ce.codigo.trim())).size !== ra.criterios.length
+      ) ||
+      new Set(resultados.map(ra => ra.codigo.trim())).size !== resultados.length
+    ) {
+      return res.status(400).json({
+        error: 'Estructura curricular inválida o códigos duplicados'
+      });
+    }
+
+    const existe = await prisma.moduloProfesional.findUnique({
+      where: { codigo: codigo.trim() }
+    });
+
+    if (existe) {
+      return res.status(409).json({
+        error: 'Ya existe un módulo con ese código'
+      });
+    }
+
+    const modulo = await prisma.moduloProfesional.create({
+      data: {
+        codigo: codigo.trim(),
+        nombre: nombre.trim(),
+        descripcion: typeof descripcion === 'string'
+          ? descripcion.trim() || null
+          : null,
+        resultados: {
+          create: resultados.map(ra => ({
+            codigo: ra.codigo.trim(),
+            texto: ra.texto.trim(),
+            criterios: {
+              create: ra.criterios.map(ce => ({
+                codigo: ce.codigo.trim(),
+                texto: ce.texto.trim()
+              }))
+            }
+          }))
+        }
+      },
+      include: {
+        resultados: {
+          include: { criterios: true }
+        }
+      }
+    });
+
+    return res.status(201).json(modulo);
+  } catch (error) {
+    console.error('Error al importar módulo:', error);
+    return res.status(500).json({
+      error: 'No se pudo importar el módulo'
+    });
+  }
+});
+
+app.get('/api/modulos', async (req, res) => {
+  try {
+    const modulos = await prisma.moduloProfesional.findMany({
+      include: {
+        resultados: {
+          orderBy: { codigo: 'asc' },
+          include: {
+            criterios: { orderBy: { codigo: 'asc' } }
+          }
+        }
+      },
+      orderBy: { nombre: 'asc' }
+    });
+
+    return res.json(modulos);
+  } catch (error) {
+    console.error('Error al consultar módulos:', error);
+    return res.status(500).json({
+      error: 'No se pudieron consultar los módulos'
+    });
+  }
+});
+
+
+app.post('/api/indicadores/:id/criterios', async (req, res) => {
+  try {
+    const indicadorId = Number(req.params.id);
+    const { criterioId } = req.body ?? {};
+
+    if (
+      !Number.isSafeInteger(indicadorId) || indicadorId <= 0 ||
+      !Number.isSafeInteger(criterioId) || criterioId <= 0
+    ) {
+      return res.status(400).json({
+        error: 'Identificadores inválidos'
+      });
+    }
+
+    const [indicador, criterio] = await Promise.all([
+      prisma.indicador.findUnique({ where: { id: indicadorId } }),
+      prisma.criterioEvaluacion.findUnique({ where: { id: criterioId } })
+    ]);
+
+    if (!indicador || !criterio) {
+      return res.status(404).json({
+        error: 'Indicador o criterio inexistente'
+      });
+    }
+
+    const asociacion = await prisma.indicadorCriterio.upsert({
+      where: {
+        indicadorId_criterioId: { indicadorId, criterioId }
+      },
+      update: {},
+      create: { indicadorId, criterioId }
+    });
+
+    return res.json(asociacion);
+  } catch (error) {
+    console.error('Error al asociar criterio:', error);
+    return res.status(500).json({
+      error: 'No se pudo asociar el criterio'
+    });
+  }
+});
+
+app.get('/api/indicadores/:id/criterios', async (req, res) => {
+  try {
+    const indicadorId = Number(req.params.id);
+
+    if (!Number.isSafeInteger(indicadorId) || indicadorId <= 0) {
+      return res.status(400).json({
+        error: 'Identificador inválido'
+      });
+    }
+
+    const indicador = await prisma.indicador.findUnique({
+      where: { id: indicadorId },
+      include: {
+        criteriosCurriculares: {
+          include: {
+            criterio: {
+              include: {
+                resultado: {
+                  include: { modulo: true }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!indicador) {
+      return res.status(404).json({
+        error: 'Indicador inexistente'
+      });
+    }
+
+    return res.json(indicador);
+  } catch (error) {
+    console.error('Error al consultar asociaciones:', error);
+    return res.status(500).json({
+      error: 'No se pudieron consultar las asociaciones'
+    });
+  }
+});
+
+
+app.post('/api/grupos/:grupoId/estudiantes/importar', async (req, res) => {
+  try {
+    const grupoId = Number(req.params.grupoId);
+    const { estudiantes } = req.body ?? {};
+
+    if (!Number.isInteger(grupoId) || grupoId <= 0) {
+      return res.status(400).json({ error: 'Grupo no válido' });
+    }
+
+    if (!Array.isArray(estudiantes) || estudiantes.length === 0) {
+      return res.status(400).json({
+        error: 'Debes proporcionar una lista de estudiantes'
+      });
+    }
+
+    if (estudiantes.length > 500) {
+      return res.status(400).json({
+        error: 'Máximo 500 estudiantes por importación'
+      });
+    }
+
+    const codigos = new Set();
+    const filas = [];
+
+    for (const [indice, estudiante] of estudiantes.entries()) {
+      const codigo = estudiante?.codigo?.trim();
+      const nombre = estudiante?.nombre?.trim();
+
+      if (
+        typeof codigo !== 'string' ||
+        typeof nombre !== 'string' ||
+        !codigo ||
+        !nombre
+      ) {
+        return res.status(400).json({
+          error: `Fila ${indice + 1}: código o nombre no válido`
+        });
+      }
+
+      if (codigos.has(codigo)) {
+        return res.status(400).json({
+          error: `Código duplicado en el archivo: ${codigo}`
+        });
+      }
+
+      codigos.add(codigo);
+      filas.push({ codigo, nombre });
+    }
+
+    const resultado = await prisma.$transaction(async (tx) => {
+      const grupo = await tx.grupo.findUnique({
+        where: { id: grupoId }
+      });
+
+      if (!grupo) {
+        return null;
+      }
+
+      let creados = 0;
+      let existentes = 0;
+      let matriculados = 0;
+      let yaMatriculados = 0;
+
+      for (const fila of filas) {
+        let estudiante = await tx.estudiante.findUnique({
+          where: { codigo: fila.codigo }
+        });
+
+        if (estudiante) {
+          existentes++;
+        } else {
+          estudiante = await tx.estudiante.create({
+            data: fila
+          });
+          creados++;
+        }
+
+        const matricula = await tx.matricula.findFirst({
+          where: {
+            estudianteId: estudiante.id,
+            grupoId
+          }
+        });
+
+        if (matricula) {
+          yaMatriculados++;
+        } else {
+          await tx.matricula.create({
+            data: {
+              estudianteId: estudiante.id,
+              grupoId
+            }
+          });
+          matriculados++;
+        }
+      }
+
+      return {
+        grupoId,
+        total: filas.length,
+        creados,
+        existentes,
+        matriculados,
+        yaMatriculados
+      };
+    });
+
+    if (!resultado) {
+      return res.status(404).json({
+        error: 'Grupo no encontrado'
+      });
+    }
+
+    return res.status(201).json(resultado);
+
+  } catch (error) {
+    console.error('Error al importar estudiantes:', error);
+
+    return res.status(500).json({
+      error: 'No se pudieron importar los estudiantes'
     });
   }
 });

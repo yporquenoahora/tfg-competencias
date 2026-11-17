@@ -227,3 +227,50 @@
     min-height: 280px;
   }
 }
+/* Identidad visual terracota — capa de personalización */
+:root { color-scheme:light; --tfe-naranja:#c95622; --tfe-naranja-hover:#a94317; --tfe-crema:#fff3e8; --tfe-borde:#f2d7c4; --tfe-texto:#302720; --tfe-secundario:#795f50; }
+body { background:#fbf7f3; color:var(--tfe-texto); }
+h1,h2,h3 { color:var(--tfe-texto); }
+p,small,.nota { color:var(--tfe-secundario); }
+.panel { border-color:var(--tfe-borde); margin:12px 0; padding:18px; }
+.subpanel { border-color:var(--tfe-borde); }
+.registro { background:#fffaf6; border-color:var(--tfe-borde); }
+.contador,.etiqueta-estado { background:var(--tfe-crema); color:#873e1c; }
+.etiqueta { color:var(--tfe-naranja); }
+.formulario input,.formulario textarea,.formulario select,.subpanel select { border-color:#d9bda8; color:var(--tfe-texto); }
+button { background:var(--tfe-naranja); }
+button:hover:not(:disabled) { background:var(--tfe-naranja-hover); }
+button.secundario { background:white; color:#873e1c; border-color:#d9bda8; }
+button.secundario:hover:not(:disabled) { background:var(--tfe-crema); }
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible { outline:2px solid var(--tfe-naranja); outline-offset:2px; }
+.metricas { gap:10px; margin:12px 0; }
+.metricas>div { background:var(--tfe-crema); border-color:var(--tfe-borde); padding:13px; }
+.metricas span { color:var(--tfe-secundario); }
+.metricas strong { color:#873e1c; }
+th { background:var(--tfe-crema); color:#873e1c; }
+th,td { border-bottom-color:var(--tfe-borde); }
+.grafico-contenedor { background:#fffaf6; border-color:var(--tfe-borde); }
+.indicador input { accent-color:var(--tfe-naranja); }
+.menu-principal { background:#302720; }
+.menu-identidad { border-color:#655043; }
+.menu-identidad small { color:#f0d9c9; }
+.menu-principal button { background:transparent; color:#f9e9df; }
+.menu-principal button:hover { background:#594235; }
+.menu-principal button.activo { background:#ffb26b; color:#302720; }
+.pestanas-evaluacion { border-color:var(--tfe-borde); }
+.pestanas-evaluacion button { background:transparent; color:#795f50; }
+.pestanas-evaluacion button.activa { background:var(--tfe-crema); color:#873e1c; }
+.panel-deslizante-cabecera { border-color:var(--tfe-borde); }
+.contenido-panel .panel { padding:16px; }
+.contenedor { padding:16px; }
+.layout-panel { gap:16px; grid-template-columns:190px minmax(0,1fr); }
+@media (max-width:800px) { .layout-panel { grid-template-columns:minmax(0,1fr); } .contenedor { padding:12px; } }
+
+/* Ajustes finales: navegación compacta y controles */
+@media (min-width: 801px) {
+  .layout-panel { grid-template-columns: 180px minmax(0, 1fr); }
+}
+.menu-principal { padding: 14px; }
+.menu-principal button { padding: 10px 12px; }
+button:disabled { opacity: 1; background: #E8B6A0; color: #6F3925; cursor: not-allowed; }
+button.secundario:disabled { background: #F8EEE7; color: #8B776C; border-color: #E6D8CE; }

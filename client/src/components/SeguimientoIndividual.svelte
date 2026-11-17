@@ -43,7 +43,11 @@
     let versionEvidencias = 0;
 
     $: void cargarActividades(imparticionElegida);
-    $: void cargarEvidencias(actividadElegida, estudianteElegido, imparticionElegida);
+    $: void cargarEvidencias(
+        actividadElegida,
+        estudianteElegido,
+        imparticionElegida,
+    );
 
     async function cargarActividades(imparticionId) {
         const version = ++versionActividades;
@@ -55,13 +59,14 @@
         if (!imparticionId) return;
         try {
             const respuesta = await fetch(
-                `http://localhost:3000/api/actividades?imparticionId=${encodeURIComponent(imparticionId)}`
+                `http://localhost:3000/api/actividades?imparticionId=${encodeURIComponent(imparticionId)}`,
             );
             if (!respuesta.ok) throw new Error(`HTTP ${respuesta.status}`);
             const datos = await respuesta.json();
             if (version === versionActividades) actividades = datos;
         } catch (error) {
-            if (version === versionActividades) errorActividades = error.message;
+            if (version === versionActividades)
+                errorActividades = error.message;
         } finally {
             if (version === versionActividades) cargandoActividades = false;
         }
@@ -72,15 +77,17 @@
         evidencias = [];
         evidenciaIdSeleccionada = '';
         errorEvidencias = '';
-        cargandoEvidencias = Boolean(actividadId && estudianteId && imparticionId);
+        cargandoEvidencias = Boolean(
+            actividadId && estudianteId && imparticionId,
+        );
         if (!cargandoEvidencias) return;
         try {
             const parametros = new URLSearchParams({
                 actividadId: String(actividadId),
-                estudianteId: String(estudianteId)
+                estudianteId: String(estudianteId),
             });
             const respuesta = await fetch(
-                `http://localhost:3000/api/evidencias?${parametros}`
+                `http://localhost:3000/api/evidencias?${parametros}`,
             );
             if (!respuesta.ok) throw new Error(`HTTP ${respuesta.status}`);
             const datos = await respuesta.json();
@@ -170,7 +177,8 @@
             const respuesta = await fetch(
                 `http://localhost:3000/api/valoraciones/${id}/trazabilidad`,
             );
-            if (!respuesta.ok) throw new Error(`Error HTTP ${respuesta.status}`);
+            if (!respuesta.ok)
+                throw new Error(`Error HTTP ${respuesta.status}`);
 
             const datos = await respuesta.json();
             trazabilidades = { ...trazabilidades, [id]: datos };
@@ -184,6 +192,221 @@
         }
     }
 
+    let exportandoInforme = false;
+    let errorInforme = '';
+
+    function escaparHTML(valor) {
+        return String(valor ?? '').replace(
+            /[&<>"']/g,
+            (caracter) =>
+                ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#39;',
+                })[caracter],
+        );
+    }
+
+    async function exportarInforme() {
+        errorInforme = '';
+
+        const estudiante = estudiantes.find(
+            (e) => String(e.id) === String(estudianteElegido),
+        );
+        const imparticion = imparticiones.find(
+            (i) => String(i.id) === String(imparticionElegida),
+        );
+
+        if (
+            !estudiante ||
+            !imparticion ||
+            cargandoHistorial ||
+            cargandoPlanes ||
+            errorHistorial ||
+            errorPlanes
+        ) {
+            errorInforme =
+                'Espera a que terminen de cargar los datos del estudiante.';
+            return;
+        }
+
+        // Abrir inmediatamente para evitar bloqueos de ventanas emergentes.
+        const ventana = window.open('', '_blank');
+
+        if (!ventana) {
+            errorInforme =
+                'Permite las ventanas emergentes para generar el informe.';
+            return;
+        }
+
+        ventana.document.write('<p>Preparando informe...</p>');
+        exportandoInforme = true;
+
+        try {
+            const valoraciones = [...historialModulo].sort(
+                (a, b) => new Date(b.fecha) - new Date(a.fecha),
+            );
+
+            const detalles = await Promise.all(
+                valoraciones.map(async (v) => {
+                    const respuesta = await fetch(
+                        `http://localhost:3000/api/valoraciones/${v.id}/trazabilidad`,
+                    );
+
+                    if (!respuesta.ok) {
+                        throw new Error(
+                            `No se pudo consultar la valoración ${v.id}`,
+                        );
+                    }
+
+                    return respuesta.json();
+                }),
+            );
+
+            const filas = valoraciones
+                .map((v, indice) => {
+                    const detalle = detalles[indice];
+                    const evidencia = detalle.evidencia;
+
+                    return `
+                <tr>
+                    <td>${escaparHTML(new Date(v.fecha).toLocaleDateString('es-ES'))}</td>
+                    <td>${escaparHTML(v.indicador?.descripcion ?? 'Indicador no disponible')}</td>
+                    <td>${escaparHTML(v.nivel)}/4</td>
+                    <td>${escaparHTML(v.observacion || 'Sin observación')}</td>
+                    <td>
+                        ${escaparHTML(detalle.descriptorAplicado || 'No registrado')}
+                        ${
+                            evidencia
+                                ? `
+                            <p><strong>Actividad:</strong>
+                            ${escaparHTML(evidencia.actividad?.titulo || 'No disponible')}</p>
+                            <p><strong>Evidencia:</strong>
+                            ${escaparHTML(evidencia.descripcion)}</p>
+                            ${
+                                evidencia.referencia
+                                    ? `
+                                <p><strong>Referencia:</strong>
+                                ${escaparHTML(evidencia.referencia)}</p>
+                            `
+                                    : ''
+                            }
+                        `
+                                : ''
+                        }
+                    </td>
+                </tr>
+            `;
+                })
+                .join('');
+
+            const documento = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Informe individual - ${escaparHTML(estudiante.codigo)}</title>
+<style>
+    @page { size: A4; margin: 16mm; }
+    body {
+        font-family: Arial, sans-serif;
+        color: #172b49;
+        font-size: 10pt;
+        line-height: 1.45;
+    }
+    h1 { font-size: 20pt; margin-bottom: 5mm; }
+    h2 {
+        font-size: 13pt;
+        border-bottom: 1px solid #b9cbe0;
+        padding-bottom: 2mm;
+        margin-top: 8mm;
+    }
+    .metadatos p { margin: 2mm 0; }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+        font-size: 8pt;
+    }
+    th, td {
+        padding: 7px;
+        border: 1px solid #dce3ed;
+        vertical-align: top;
+        overflow-wrap: anywhere;
+    }
+    th { background: #eef2f8; text-align: left; }
+    tr { break-inside: avoid; }
+    .nota { color: #52647d; font-size: 9pt; }
+    .acciones { margin: 20px 0; }
+    @media print {
+        .acciones { display: none; }
+    }
+</style>
+</head>
+<body>
+    <h1>Informe individual de seguimiento</h1>
+    <p class="nota">Competencias transversales · Formación Profesional</p>
+
+    <div class="metadatos">
+        <p><strong>Estudiante:</strong>
+        ${escaparHTML(estudiante.nombre)} (${escaparHTML(estudiante.codigo)})</p>
+        <p><strong>Grupo:</strong> ${escaparHTML(grupo.nombre)}</p>
+        <p><strong>Curso:</strong> ${escaparHTML(grupo.curso)}</p>
+        <p><strong>Módulo:</strong> ${escaparHTML(imparticion.nombreModulo)}</p>
+        <p><strong>Fecha de emisión:</strong>
+        ${new Date().toLocaleDateString('es-ES')}</p>
+    </div>
+
+    <h2>Historial de valoraciones</h2>
+    ${
+        valoraciones.length
+            ? `
+        <table>
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Indicador</th>
+                    <th>Nivel</th>
+                    <th>Observación</th>
+                    <th>Descriptor y evidencia</th>
+                </tr>
+            </thead>
+            <tbody>${filas}</tbody>
+        </table>
+    `
+            : '<p>No hay valoraciones registradas para este módulo.</p>'
+    }
+
+    <h2>Planes de refuerzo</h2>
+    <p>Planes registrados para el estudiante: ${planes.length}</p>
+    <p class="nota">
+        El detalle de los planes no se incluye todavía en esta versión del informe.
+    </p>
+
+    <h2>Consideraciones</h2>
+    <p class="nota">
+        Los niveles representan observaciones docentes sobre competencias
+        transversales. No constituyen diagnósticos ni equivalen por sí solos
+        a calificaciones curriculares.
+    </p>
+
+    <div class="acciones">
+        <button onclick="window.print()">Imprimir / Guardar como PDF</button>
+    </div>
+</body>
+</html>`;
+
+            ventana.document.open();
+            ventana.document.write(documento);
+            ventana.document.close();
+        } catch (error) {
+            ventana.close();
+            errorInforme = error.message ?? 'No se pudo generar el informe.';
+        } finally {
+            exportandoInforme = false;
+        }
+    }
 </script>
 
 <section class="seguimiento-compacto" id="seguimiento-individual">
@@ -195,34 +418,70 @@
                     {grupo.nombre} · Curso {grupo.curso} · {estudiantes.length} estudiantes
                 </p>
             </div>
+        <div class="acciones-informe">
+            <button
+                type="button"
+                class="accion-primaria"
+                onclick={exportarInforme}
+                disabled={!estudianteElegido ||
+                    !imparticionElegida ||
+                    exportandoInforme ||
+                    cargandoHistorial ||
+                    cargandoPlanes}
+            >
+                {exportandoInforme
+                    ? 'Preparando informe...'
+                    : 'Exportar informe PDF'}
+            </button>
+
+            {#if errorInforme}
+                <p class="error" role="alert">{errorInforme}</p>
+            {/if}
+        </div>
+
         </header>
 
         <div class="contexto-evaluacion">
             <div class="campo">
-                <label for="imparticion">Módulo profesional</label>
+                <label for="imparticion">1. Módulo profesional</label>
                 <select
                     id="imparticion"
                     bind:value={imparticionElegida}
                     onchange={cambiarImparticion}
                 >
                     {#each imparticiones as imparticion (imparticion.id)}
-                        <option value={String(imparticion.id)}
-                            >{imparticion.nombreModulo}</option
-                        >
+                        <option value={String(imparticion.id)}>{imparticion.nombreModulo}</option>
                     {/each}
                 </select>
             </div>
             <div class="campo">
-                <label for="estudiante">Estudiante</label>
+                <label for="configuracion-evaluacion">2. Configuración de seguimiento</label>
+                <select
+                    id="configuracion-evaluacion"
+                    bind:value={configuracionEvaluacion}
+                    onchange={recuperarConfiguracion}
+                    disabled={!imparticionElegida || configuraciones.length === 0}
+                >
+                    <option value="">Selecciona una configuración</option>
+                    {#each configuraciones as configuracion (configuracion.id)}
+                        <option value={String(configuracion.id)}>
+                            {configuracion.nombre} ({configuracion.indicadores?.length ?? 0} indicadores)
+                        </option>
+                    {/each}
+                </select>
+                {#if imparticionElegida && configuraciones.length === 0}
+                    <small>No hay configuraciones asociadas a este módulo.</small>
+                {/if}
+            </div>
+            <div class="campo">
+                <label for="estudiante">3. Estudiante</label>
                 <select
                     id="estudiante"
                     value={estudianteElegido}
                     onchange={cambiarEstudiante}
                 >
                     {#each estudiantes as estudiante (estudiante.id)}
-                        <option value={String(estudiante.id)}
-                            >{estudiante.codigo} — {estudiante.nombre}</option
-                        >
+                        <option value={String(estudiante.id)}>{estudiante.codigo} — {estudiante.nombre}</option>
                     {/each}
                 </select>
             </div>
@@ -234,31 +493,9 @@
                 aria-labelledby="titulo-valoracion"
             >
                 <h3 id="titulo-valoracion">Nueva valoración</h3>
-                <div class="campo">
-                    <label for="configuracion-evaluacion"
-                        >Configuración de indicadores</label
-                    >
-                    <select
-                        id="configuracion-evaluacion"
-                        bind:value={configuracionEvaluacion}
-                        onchange={recuperarConfiguracion}
-                    >
-                        <option value=""
-                            >Selecciona una configuración guardada</option
-                        >
-                        {#each configuraciones as configuracion (configuracion.id)}
-                            <option value={String(configuracion.id)}>
-                                {configuracion.nombre} ({configuracion
-                                    .indicadores?.length ?? 0} indicadores)
-                            </option>
-                        {/each}
-                    </select>
-                </div>
-
                 {#if evaluables.length === 0}
                     <p>
-                        No hay indicadores disponibles. Añade indicadores desde
-                        el Catálogo para comenzar.
+                        Selecciona una configuración de seguimiento con indicadores para comenzar la valoración.
                     </p>
                 {:else}
                     <div class="campo">
@@ -314,24 +551,46 @@
                             )?.descripcion ?? ''}
                         </p>
                     {/if}
+                    <details class="opciones-evidencia">
+                        <summary>Actividad y evidencia <span>(opcional)</span></summary>
+                        <div class="campos-opcionales">
                     <div class="campo">
-                        <label for="actividad-valoracion">Actividad (opcional)</label>
-                        <select id="actividad-valoracion" bind:value={actividadElegida}
-                            disabled={cargandoActividades || !imparticionElegida}>
+                        <label for="actividad-valoracion"
+                            >Actividad (opcional)</label
+                        >
+                        <select
+                            id="actividad-valoracion"
+                            bind:value={actividadElegida}
+                            disabled={cargandoActividades ||
+                                !imparticionElegida}
+                        >
                             <option value="">Sin actividad asociada</option>
                             {#each actividades as actividad (actividad.id)}
-                                <option value={String(actividad.id)}>{actividad.titulo}</option>
+                                <option value={String(actividad.id)}
+                                    >{actividad.titulo}</option
+                                >
                             {/each}
                         </select>
-                        {#if cargandoActividades}<small>Cargando actividades...</small>{/if}
+                        {#if cargandoActividades}<small
+                                >Cargando actividades...</small
+                            >{/if}
                         {#if errorActividades}
-                            <p class="error" role="alert">Error al cargar actividades: {errorActividades}</p>
+                            <p class="error" role="alert">
+                                Error al cargar actividades: {errorActividades}
+                            </p>
                         {/if}
                     </div>
                     <div class="campo">
-                        <label for="evidencia-valoracion">Evidencia (opcional)</label>
-                        <select id="evidencia-valoracion" bind:value={evidenciaIdSeleccionada}
-                            disabled={!actividadElegida || cargandoEvidencias || !estudianteElegido}>
+                        <label for="evidencia-valoracion"
+                            >Evidencia (opcional)</label
+                        >
+                        <select
+                            id="evidencia-valoracion"
+                            bind:value={evidenciaIdSeleccionada}
+                            disabled={!actividadElegida ||
+                                cargandoEvidencias ||
+                                !estudianteElegido}
+                        >
                             <option value="">Sin evidencia asociada</option>
                             {#each evidencias as evidencia (evidencia.id)}
                                 <option value={String(evidencia.id)}>
@@ -339,11 +598,17 @@
                                 </option>
                             {/each}
                         </select>
-                        {#if cargandoEvidencias}<small>Cargando evidencias...</small>{/if}
+                        {#if cargandoEvidencias}<small
+                                >Cargando evidencias...</small
+                            >{/if}
                         {#if errorEvidencias}
-                            <p class="error" role="alert">Error al cargar evidencias: {errorEvidencias}</p>
+                            <p class="error" role="alert">
+                                Error al cargar evidencias: {errorEvidencias}
+                            </p>
                         {/if}
                     </div>
+                        </div>
+                    </details>
                     <div class="campo">
                         <label for="observacion-valoracion"
                             >Observación docente</label
@@ -395,69 +660,66 @@
                         />
                     {/if}
                 </section>
-
             </div>
         </div>
         <div class="resumenes-inferiores">
-                <section
-                    class="tarjeta-seguimiento"
-                    aria-labelledby="titulo-historial"
-                >
-                    <div class="cabecera-tarjeta">
-                        <h3 id="titulo-historial">Historial reciente</h3>
-                        <button
-                            class="enlace-accion"
-                            type="button"
-                            onclick={() => abrirPanel('historial')}
-                            >Ver todo</button
-                        >
-                    </div>
-                    {#if cargandoHistorial}
-                        <p>Cargando historial...</p>
-                    {:else if errorHistorial}
-                        <p class="error" role="alert">{errorHistorial}</p>
-                    {:else if historialReciente.length === 0}
-                        <p>Sin valoraciones en este módulo.</p>
-                    {:else}
-                        <ul class="lista-resumen">
-                            {#each historialReciente as valoracion (valoracion.id)}
-                                <li>
-                                    <span
-                                        >{valoracion.indicador?.descripcion ??
-                                            'Indicador'}</span
-                                    ><strong>{valoracion.nivel}/4</strong>
-                                </li>
-                            {/each}
-                        </ul>
-                    {/if}
-                </section>
+            <section
+                class="tarjeta-seguimiento"
+                aria-labelledby="titulo-historial"
+            >
+                <div class="cabecera-tarjeta">
+                    <h3 id="titulo-historial">Historial reciente</h3>
+                    <button
+                        class="enlace-accion"
+                        type="button"
+                        onclick={() => abrirPanel('historial')}>Ver todo</button
+                    >
+                </div>
+                {#if cargandoHistorial}
+                    <p>Cargando historial...</p>
+                {:else if errorHistorial}
+                    <p class="error" role="alert">{errorHistorial}</p>
+                {:else if historialReciente.length === 0}
+                    <p>Sin valoraciones en este módulo.</p>
+                {:else}
+                    <ul class="lista-resumen">
+                        {#each historialReciente as valoracion (valoracion.id)}
+                            <li>
+                                <span
+                                    >{valoracion.indicador?.descripcion ??
+                                        'Indicador'}</span
+                                ><strong>{valoracion.nivel}/4</strong>
+                            </li>
+                        {/each}
+                    </ul>
+                {/if}
+            </section>
 
-                <section
-                    class="tarjeta-seguimiento"
-                    aria-labelledby="titulo-planes"
-                >
-                    <div class="cabecera-tarjeta">
-                        <h3 id="titulo-planes">Planes de refuerzo</h3>
-                        <button
-                            class="enlace-accion"
-                            type="button"
-                            onclick={() => abrirPanel('planes')}
-                            >Gestionar</button
-                        >
-                    </div>
-                    {#if cargandoPlanes}
-                        <p>Cargando planes...</p>
-                    {:else if errorPlanes}
-                        <p class="error" role="alert">{errorPlanes}</p>
-                    {:else}
-                        <p>
-                            {planes.length}
-                            {planes.length === 1
-                                ? 'plan registrado'
-                                : 'planes registrados'} para este estudiante.
-                        </p>
-                    {/if}
-                </section>
+            <section
+                class="tarjeta-seguimiento"
+                aria-labelledby="titulo-planes"
+            >
+                <div class="cabecera-tarjeta">
+                    <h3 id="titulo-planes">Planes de refuerzo</h3>
+                    <button
+                        class="enlace-accion"
+                        type="button"
+                        onclick={() => abrirPanel('planes')}>Gestionar</button
+                    >
+                </div>
+                {#if cargandoPlanes}
+                    <p>Cargando planes...</p>
+                {:else if errorPlanes}
+                    <p class="error" role="alert">{errorPlanes}</p>
+                {:else}
+                    <p>
+                        {planes.length}
+                        {planes.length === 1
+                            ? 'plan registrado'
+                            : 'planes registrados'} para este estudiante.
+                    </p>
+                {/if}
+            </section>
         </div>
     {:else}
         <p>No hay datos del grupo disponibles.</p>
@@ -488,7 +750,11 @@
                         ? 'Historial y evolución'
                         : 'Planes de refuerzo'}
                 </h2>
-                <button bind:this={botonCerrarPanel} type="button" onclick={cerrarPanel}>Cerrar</button>
+                <button
+                    bind:this={botonCerrarPanel}
+                    type="button"
+                    onclick={cerrarPanel}>Cerrar</button
+                >
             </header>
             <div class="panel-deslizante-contenido">
                 {#if panelLateral === 'historial'}
@@ -526,8 +792,10 @@
                                     <button
                                         type="button"
                                         class="enlace-accion"
-                                        onclick={() => alternarTrazabilidad(valoracion.id)}
-                                        aria-expanded={valoracionExpandida === valoracion.id}
+                                        onclick={() =>
+                                            alternarTrazabilidad(valoracion.id)}
+                                        aria-expanded={valoracionExpandida ===
+                                            valoracion.id}
                                     >
                                         {valoracionExpandida === valoracion.id
                                             ? 'Ocultar detalles'
@@ -540,19 +808,53 @@
                                                 <p>Cargando trazabilidad...</p>
                                             {:else if erroresTrazabilidad[valoracion.id]}
                                                 <p class="error" role="alert">
-                                                    {erroresTrazabilidad[valoracion.id]}
+                                                    {erroresTrazabilidad[
+                                                        valoracion.id
+                                                    ]}
                                                 </p>
                                             {:else if trazabilidades[valoracion.id]}
-                                                {@const detalle = trazabilidades[valoracion.id]}
-                                                <p><strong>Descriptor aplicado:</strong> {detalle.descriptorAplicado ?? 'No registrado'}</p>
+                                                {@const detalle =
+                                                    trazabilidades[
+                                                        valoracion.id
+                                                    ]}
+                                                <p>
+                                                    <strong
+                                                        >Descriptor aplicado:</strong
+                                                    >
+                                                    {detalle.descriptorAplicado ??
+                                                        'No registrado'}
+                                                </p>
                                                 {#if detalle.evidencia}
-                                                    <p><strong>Actividad:</strong> {detalle.evidencia.actividad?.titulo ?? 'No disponible'}</p>
-                                                    <p><strong>Evidencia:</strong> {detalle.evidencia.descripcion}</p>
+                                                    <p>
+                                                        <strong
+                                                            >Actividad:</strong
+                                                        >
+                                                        {detalle.evidencia
+                                                            .actividad
+                                                            ?.titulo ??
+                                                            'No disponible'}
+                                                    </p>
+                                                    <p>
+                                                        <strong
+                                                            >Evidencia:</strong
+                                                        >
+                                                        {detalle.evidencia
+                                                            .descripcion}
+                                                    </p>
                                                     {#if detalle.evidencia.referencia}
-                                                        <p><strong>Referencia:</strong> {detalle.evidencia.referencia}</p>
+                                                        <p>
+                                                            <strong
+                                                                >Referencia:</strong
+                                                            >
+                                                            {detalle.evidencia
+                                                                .referencia}
+                                                        </p>
                                                     {/if}
                                                 {:else}
-                                                    <p>Esta valoración no tiene una evidencia vinculada.</p>
+                                                    <p>
+                                                        Esta valoración no tiene
+                                                        una evidencia vinculada.
+                                                    </p>
                                                 {/if}
                                             {/if}
                                         </div>
@@ -593,7 +895,7 @@
     }
     .contexto-evaluacion {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 12px;
         margin-bottom: 14px;
     }
@@ -755,7 +1057,7 @@
             grid-template-columns: 1fr;
         }
     }
-    @media (max-width: 650px) {
+    @media (max-width: 900px) {
         .contexto-evaluacion {
             grid-template-columns: 1fr;
         }
@@ -775,7 +1077,54 @@
         font-size: 0.88rem;
     }
 
-    .detalle-trazabilidad p { margin: 0 0 8px; }
-    .detalle-trazabilidad p:last-child { margin-bottom: 0; }
-    .registro > .enlace-accion { margin-top: 10px; }
+    .detalle-trazabilidad p {
+        margin: 0 0 8px;
+    }
+    .detalle-trazabilidad p:last-child {
+        margin-bottom: 0;
+    }
+    .registro > .enlace-accion {
+        margin-top: 10px;
+    }
+    .acciones-informe {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    /* Rediseño compacto terracota: únicamente esta vista */
+    .seguimiento-compacto { container-type: inline-size; }
+    .cabecera-seguimiento { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
+    .cabecera-seguimiento h2 { color:#302720; font-size:1.35rem; }
+    .cabecera-seguimiento p { margin:0; color:#795f50; font-size:.85rem; }
+    .acciones-informe { margin:0; gap:8px; }
+    .acciones-informe .accion-primaria { padding:8px 12px; font-size:.84rem; }
+    .contexto-evaluacion { gap:10px; margin-bottom:12px; padding:12px; border:1px solid #f2d7c4; border-radius:12px; background:#fff3e8; }
+    .contexto-evaluacion .campo { margin-bottom:0; }
+    .columnas-seguimiento { gap:12px; grid-template-columns:minmax(0,1.1fr) minmax(0,1fr); }
+    .resumenes-inferiores { gap:12px; margin-top:12px; }
+    .tarjeta-seguimiento { padding:13px; border-color:#f2d7c4; }
+    .tarjeta-seguimiento h3 { margin-bottom:9px; color:#302720; }
+    .campo { gap:4px; margin-bottom:9px; }
+    .campo label { font-size:.83rem; color:#46372d; }
+    .campo select, .campo textarea { padding:7px 9px; border-color:#d9bda8; color:#302720; }
+    .campo select:focus-visible, .campo textarea:focus-visible { outline:2px solid #c95622; outline-offset:1px; }
+    .accion-primaria { background:#c95622; padding:9px 12px; font-weight:600; }
+    .accion-primaria:hover:not(:disabled) { background:#a94317; }
+    .enlace-accion { color:#a94317; }
+    .rubrica-resumen, .descriptor-elegido { margin-bottom:8px; color:#795f50; }
+    .opciones-evidencia { margin:2px 0 10px; border:1px solid #f2d7c4; border-radius:8px; background:#fffaf6; }
+    .opciones-evidencia summary { cursor:pointer; padding:9px 11px; color:#873e1c; font-weight:600; font-size:.85rem; }
+    .opciones-evidencia summary span { font-weight:400; color:#795f50; }
+    .campos-opcionales { padding:3px 11px 1px; }
+    .detalle-trazabilidad { background:#fff8f2; border-color:#f2d7c4; }
+    @container (max-width: 760px) {
+        .columnas-seguimiento, .resumenes-inferiores { grid-template-columns:minmax(0,1fr); }
+        .contexto-evaluacion { grid-template-columns:minmax(0,1fr); }
+    }
+    @media (min-width: 801px) and (max-width: 1050px) {
+        .columnas-seguimiento, .resumenes-inferiores { grid-template-columns:minmax(0,1.1fr) minmax(0,1fr); }
+    }
 </style>
