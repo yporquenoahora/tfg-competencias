@@ -173,27 +173,27 @@ app.post('/api/configuraciones', async (req, res) => {
       });
     }
 
-if (
-  imparticionId !== undefined &&
-  imparticionId !== null &&
-  (!Number.isInteger(imparticionId) || imparticionId <= 0)
-) {
-  return res.status(400).json({
-    error: 'Identificador de impartición no válido'
-  });
-}
+    if (
+      imparticionId !== undefined &&
+      imparticionId !== null &&
+      (!Number.isInteger(imparticionId) || imparticionId <= 0)
+    ) {
+      return res.status(400).json({
+        error: 'Identificador de impartición no válido'
+      });
+    }
 
-if (imparticionId != null) {
-  const imparticion = await prisma.imparticionModulo.findUnique({
-    where: { id: imparticionId }
-  });
+    if (imparticionId != null) {
+      const imparticion = await prisma.imparticionModulo.findUnique({
+        where: { id: imparticionId }
+      });
 
-  if (!imparticion) {
-    return res.status(404).json({
-      error: 'La impartición seleccionada no existe'
-    });
-  }
-}
+      if (!imparticion) {
+        return res.status(404).json({
+          error: 'La impartición seleccionada no existe'
+        });
+      }
+    }
 
     const configuracion = await prisma.configuracionSeguimiento.create({
       data: {
@@ -244,7 +244,11 @@ app.get('/api/grupos/:grupoId/estudiantes', async (req, res) => {
             estudiante: true
           }
         },
-        imparticiones: true
+        imparticiones: {
+          include: {
+            modulo: true
+          }
+        }
       }
     });
 
