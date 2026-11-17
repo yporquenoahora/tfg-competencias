@@ -1541,6 +1541,6 @@ app.post('/api/grupos/:grupoId/estudiantes/importar', async (req, res) => {
 
 
 // Iniciar servidor HTTP
-app.listen(PORT, () => {
-  console.log(`API disponible en http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Servidor escuchando en el puerto ${PORT}`);
 });

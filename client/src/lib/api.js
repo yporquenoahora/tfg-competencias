@@ -1,4 +1,6 @@
-export const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+export const API_BASE = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD
+    ? 'https://tfg-competencias-api.onrender.com/api'
+    : 'http://localhost:3000/api');
 
 export async function api(path, options = {}) {
   const response = await fetch(`${API_BASE}${path}`, {

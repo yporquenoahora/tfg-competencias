@@ -1,6 +1,7 @@
 <script>
     import Evolucion from '../components/Evolucion.svelte';
     import PlanesRefuerzo from '../components/PlanesRefuerzo.svelte';
+    import { API_BASE } from '../lib/api.js';
 
     export let grupo = null;
     export let estudiantes = [];
@@ -59,7 +60,7 @@
         if (!imparticionId) return;
         try {
             const respuesta = await fetch(
-                `http://localhost:3000/api/actividades?imparticionId=${encodeURIComponent(imparticionId)}`,
+                `${API_BASE}/actividades?imparticionId=${encodeURIComponent(imparticionId)}`,
             );
             if (!respuesta.ok) throw new Error(`HTTP ${respuesta.status}`);
             const datos = await respuesta.json();
@@ -87,7 +88,7 @@
                 estudianteId: String(estudianteId),
             });
             const respuesta = await fetch(
-                `http://localhost:3000/api/evidencias?${parametros}`,
+                `${API_BASE}/evidencias?${parametros}`,
             );
             if (!respuesta.ok) throw new Error(`HTTP ${respuesta.status}`);
             const datos = await respuesta.json();
@@ -198,7 +199,7 @@
 
         try {
             const respuesta = await fetch(
-                `http://localhost:3000/api/valoraciones/${id}/trazabilidad`,
+                `${API_BASE}/valoraciones/${id}/trazabilidad`,
             );
             if (!respuesta.ok)
                 throw new Error(`Error HTTP ${respuesta.status}`);
@@ -275,7 +276,7 @@
             const detalles = await Promise.all(
                 valoraciones.map(async (v) => {
                     const respuesta = await fetch(
-                        `http://localhost:3000/api/valoraciones/${v.id}/trazabilidad`,
+                        `${API_BASE}/valoraciones/${v.id}/trazabilidad`,
                     );
 
                     if (!respuesta.ok) {
@@ -325,6 +326,67 @@
                 })
                 .join('');
 
+            // Resumen pedagógico por indicador, siempre dentro de la impartición seleccionada.
+            const gruposIndicadores = new Map();
+            for (const v of valoraciones) {
+                if (!gruposIndicadores.has(v.indicadorId)) gruposIndicadores.set(v.indicadorId, []);
+                gruposIndicadores.get(v.indicadorId).push(v);
+            }
+            const resumentes = [...gruposIndicadores.entries()].map(([id, registros]) => {
+                const ordenados = [...registros].sort((a, b) =>
+                    new Date(a.fecha) - new Date(b.fecha) || a.id - b.id);
+                const inicial = ordenados[0];
+                const actual = ordenados[ordenados.length - 1];
+                const anterior = ordenados.length > 1 ? ordenados[ordenados.length - 2] : null;
+                const diferencia = Number(actual.nivel) - Number(inicial.nivel);
+                const tendencia = ordenados.length < 2 ? 'Evidencia insuficiente'
+                    : diferencia > 0 ? 'Mejora observada'
+                    : diferencia < 0 ? 'Retroceso observado' : 'Sin cambio entre inicio y fin';
+                const estado = Number(actual.nivel) > 2 ? 'Sin alerta actual'
+                    : anterior && Number(anterior.nivel) <= 2 ? 'Revisión prioritaria'
+                    : 'Atención inicial';
+                return { id, nombre: actual.indicador?.descripcion ?? 'Indicador',
+                    inicial: inicial.nivel, actual: actual.nivel, diferencia,
+                    numero: ordenados.length, tendencia, estado };
+            });
+
+            const moduloCurricularId = imparticion.moduloId;
+            const asociaciones = new Map();
+            if (moduloCurricularId != null) {
+                await Promise.all(resumentes.map(async (item) => {
+                    const respuesta = await fetch(
+                        `${API_BASE}/indicadores/${item.id}/criterios`
+                    );
+                    if (!respuesta.ok) throw new Error(`No se pudo consultar el currículo del indicador ${item.id}`);
+                    const indicador = await respuesta.json();
+                    const criterios = (indicador.criteriosCurriculares ?? [])
+                        .map(a => a.criterio)
+                        .filter(c => Number(c?.resultado?.moduloId) === Number(moduloCurricularId));
+                    asociaciones.set(item.id, criterios);
+                }));
+            }
+            const filasResumen = resumentes.map(item => {
+                const criterios = asociaciones.get(item.id) ?? [];
+                const textoCurricular = moduloCurricularId == null
+                    ? 'Impartición sin currículo asociado'
+                    : criterios.length ? criterios.map(c =>
+                        `${escaparHTML(c.resultado.codigo)}: ${escaparHTML(c.resultado.texto)} — ${escaparHTML(c.codigo)}: ${escaparHTML(c.texto)}`
+                    ).join('<hr>') : 'Sin CE vinculados en este módulo';
+                return `<tr><td>${escaparHTML(item.nombre)}</td>
+                    <td>${item.numero}</td><td>${item.inicial}/4</td><td>${item.actual}/4</td>
+                    <td>${item.diferencia > 0 ? '+' : ''}${item.diferencia}</td>
+                    <td>${escaparHTML(item.tendencia)}</td><td>${escaparHTML(item.estado)}</td>
+                    <td>${textoCurricular}</td></tr>`;
+            }).join('');
+            const planesModulo = planes.filter(p => Number(p.imparticionId) === Number(imparticionElegida));
+            const filasPlanes = planesModulo.map(p => `<tr>
+                <td>${escaparHTML(p.indicador?.descripcion ?? 'Indicador')}</td>
+                <td>${escaparHTML(p.objetivo)}</td>
+                <td>${escaparHTML(p.descripcion)}</td>
+                <td>${escaparHTML(p.estado)}</td>
+                <td>${p.fechaRevision ? escaparHTML(new Date(p.fechaRevision).toLocaleDateString('es-ES')) : 'Sin establecer'}</td>
+            </tr>`).join('');
+
             const documento = `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -334,14 +396,14 @@
     @page { size: A4; margin: 16mm; }
     body {
         font-family: Arial, sans-serif;
-        color: #172b49;
+        color: #302720;
         font-size: 10pt;
         line-height: 1.45;
     }
     h1 { font-size: 20pt; margin-bottom: 5mm; }
     h2 {
         font-size: 13pt;
-        border-bottom: 1px solid #b9cbe0;
+        border-bottom: 1px solid #c95622;
         padding-bottom: 2mm;
         margin-top: 8mm;
     }
@@ -354,13 +416,13 @@
     }
     th, td {
         padding: 7px;
-        border: 1px solid #dce3ed;
+        border: 1px solid #f2d7c4;
         vertical-align: top;
         overflow-wrap: anywhere;
     }
-    th { background: #eef2f8; text-align: left; }
+    th { background: #fff3e8; text-align: left; }
     tr { break-inside: avoid; }
-    .nota { color: #52647d; font-size: 9pt; }
+    .nota { color: #795f50; font-size: 9pt; }
     .acciones { margin: 20px 0; }
     @media print {
         .acciones { display: none; }
@@ -380,6 +442,16 @@
         <p><strong>Fecha de emisión:</strong>
         ${new Date().toLocaleDateString('es-ES')}</p>
     </div>
+
+    <h2>Resumen pedagógico por indicador</h2>
+    ${resumentes.length ? `<table><thead><tr>
+        <th>Indicador</th><th>N.º</th><th>Inicial</th><th>Actual</th><th>Variación</th>
+        <th>Tendencia</th><th>Seguimiento</th><th>RA / CE vinculados</th>
+    </tr></thead><tbody>${filasResumen}</tbody></table>`
+    : '<p>No hay observaciones para interpretar en este módulo.</p>'}
+    <p class="nota">La tendencia compara la primera y la última observación del indicador.
+    El estado de atención utiliza las dos últimas. Una asociación curricular no equivale
+    a una calificación del RA o CE.</p>
 
     <h2>Historial de valoraciones</h2>
     ${
@@ -401,11 +473,13 @@
             : '<p>No hay valoraciones registradas para este módulo.</p>'
     }
 
-    <h2>Planes de refuerzo</h2>
-    <p>Planes registrados para el estudiante: ${planes.length}</p>
-    <p class="nota">
-        El detalle de los planes no se incluye todavía en esta versión del informe.
-    </p>
+    <h2>Planes de refuerzo registrados en este módulo</h2>
+    <p>Total: ${planesModulo.length}</p>
+    ${planesModulo.length ? `<table><thead><tr><th>Indicador</th><th>Objetivo</th>
+        <th>Estrategia</th><th>Estado</th><th>Revisión</th></tr></thead>
+        <tbody>${filasPlanes}</tbody></table>`
+        : '<p>No hay planes de refuerzo registrados para esta impartición.</p>'}
+    <p class="nota">Las propuestas pendientes de aceptación no se incluyen como planes.</p>
 
     <h2>Consideraciones</h2>
     <p class="nota">

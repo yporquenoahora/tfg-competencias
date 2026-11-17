@@ -1,139 +1,136 @@
-
 <script>
-  let { grupoId, apiBase = 'http://localhost:3000', onImportado = () => {} } = $props();
+    import { api } from '../lib/api.js';
 
-  let archivo = $state(null);
-  let cargando = $state(false);
-  let error = $state('');
-  let resultado = $state(null);
+    let { grupoId, onImportado = () => {} } = $props();
 
-  function seleccionarArchivo(event) {
-    archivo = event.currentTarget.files?.[0] ?? null;
-    error = '';
-    resultado = null;
-  }
+    let archivo = $state(null);
+    let cargando = $state(false);
+    let error = $state('');
+    let resultado = $state(null);
 
-  async function importar() {
-    if (!archivo) {
-      error = 'Selecciona un archivo CSV.';
-      return;
+    function seleccionarArchivo(event) {
+        archivo = event.currentTarget.files?.[0] ?? null;
+        error = '';
+        resultado = null;
     }
 
-    cargando = true;
-    error = '';
-    resultado = null;
-
-    try {
-      const texto = (await archivo.text()).replace(/^\uFEFF/, '');
-      const lineas = texto.split(/\r?\n/).filter(linea => linea.trim());
-
-      if (lineas.length < 2) {
-        throw new Error('El CSV debe contener cabecera y estudiantes.');
-      }
-
-      const separador = lineas[0].includes(';') ? ';' : ',';
-      const cabecera = lineas[0].split(separador)
-        .map(valor => valor.trim().toLowerCase());
-
-      const indiceCodigo = cabecera.indexOf('codigo');
-      const indiceNombre = cabecera.indexOf('nombre');
-
-      if (indiceCodigo === -1 || indiceNombre === -1) {
-        throw new Error('El CSV debe incluir las columnas codigo y nombre.');
-      }
-
-      const estudiantes = lineas.slice(1).map((linea, indice) => {
-        const columnas = linea.split(separador).map(valor => valor.trim());
-
-        if (columnas.length !== cabecera.length) {
-          throw new Error(`Número de columnas incorrecto en la fila ${indice + 2}.`);
+    async function importar() {
+        if (!archivo) {
+            error = 'Selecciona un archivo CSV.';
+            return;
         }
 
-        return {
-          codigo: columnas[indiceCodigo],
-          nombre: columnas[indiceNombre]
-        };
-      });
+        cargando = true;
+        error = '';
+        resultado = null;
 
-      const respuesta = await fetch(
-        `${apiBase}/api/grupos/${grupoId}/estudiantes/importar`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ estudiantes })
+        try {
+            const texto = (await archivo.text()).replace(/^\uFEFF/, '');
+            const lineas = texto.split(/\r?\n/).filter((linea) => linea.trim());
+
+            if (lineas.length < 2) {
+                throw new Error('El CSV debe contener cabecera y estudiantes.');
+            }
+
+            const separador = lineas[0].includes(';') ? ';' : ',';
+            const cabecera = lineas[0]
+                .split(separador)
+                .map((valor) => valor.trim().toLowerCase());
+
+            const indiceCodigo = cabecera.indexOf('codigo');
+            const indiceNombre = cabecera.indexOf('nombre');
+
+            if (indiceCodigo === -1 || indiceNombre === -1) {
+                throw new Error(
+                    'El CSV debe incluir las columnas codigo y nombre.',
+                );
+            }
+
+            const estudiantes = lineas.slice(1).map((linea, indice) => {
+                const columnas = linea
+                    .split(separador)
+                    .map((valor) => valor.trim());
+
+                if (columnas.length !== cabecera.length) {
+                    throw new Error(
+                        `Número de columnas incorrecto en la fila ${indice + 2}.`,
+                    );
+                }
+
+                return {
+                    codigo: columnas[indiceCodigo],
+                    nombre: columnas[indiceNombre],
+                };
+            });
+
+            const datos = await api(
+                `/grupos/${encodeURIComponent(grupoId)}/estudiantes/importar`,
+                {
+                    method: 'POST',
+                    body: JSON.stringify({ estudiantes }),
+                },
+            );
+
+            resultado = datos;
+            await onImportado();
+        } catch (e) {
+            error = e.message;
+        } finally {
+            cargando = false;
         }
-      );
-
-      const datos = await respuesta.json();
-
-      if (!respuesta.ok) {
-        throw new Error(datos.error ?? 'Error al importar.');
-      }
-
-      resultado = datos;
-      await onImportado();
-    } catch (e) {
-      error = e.message;
-    } finally {
-      cargando = false;
     }
-  }
 </script>
 
 <section class="importacion">
-  <h3>Importar estudiantes</h3>
-  <p>Selecciona un CSV con las columnas codigo y nombre.</p>
+    <h3>Importar estudiantes</h3>
+    <p>Selecciona un CSV con las columnas codigo y nombre.</p>
 
-  <input
-    type="file"
-    accept=".csv,text/csv"
-    onchange={seleccionarArchivo}
-  />
+    <input type="file" accept=".csv,text/csv" onchange={seleccionarArchivo} />
 
-  <button onclick={importar} disabled={cargando || !archivo}>
-    {cargando ? 'Importando...' : 'Importar al grupo'}
-  </button>
+    <button onclick={importar} disabled={cargando || !archivo}>
+        {cargando ? 'Importando...' : 'Importar al grupo'}
+    </button>
 
-  {#if error}
-    <p class="error" role="alert">{error}</p>
-  {/if}
+    {#if error}
+        <p class="error" role="alert">{error}</p>
+    {/if}
 
-  {#if resultado}
-    <div class="resultado" role="status">
-      <strong>Importación completada</strong>
-      <p>Procesados: {resultado.total}</p>
-      <p>Creados: {resultado.creados}</p>
-      <p>Nuevas matrículas: {resultado.matriculados}</p>
-      <p>Ya matriculados: {resultado.yaMatriculados}</p>
-    </div>
-  {/if}
+    {#if resultado}
+        <div class="resultado" role="status">
+            <strong>Importación completada</strong>
+            <p>Procesados: {resultado.total}</p>
+            <p>Creados: {resultado.creados}</p>
+            <p>Nuevas matrículas: {resultado.matriculados}</p>
+            <p>Ya matriculados: {resultado.yaMatriculados}</p>
+        </div>
+    {/if}
 </section>
 
 <style>
-  .importacion {
-    padding: 1rem;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-  }
+    .importacion {
+        padding: 1rem;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+    }
 
-  input {
-    display: block;
-    margin: 1rem 0;
-  }
+    input {
+        display: block;
+        margin: 1rem 0;
+    }
 
-  button {
-    padding: .65rem 1rem;
-    cursor: pointer;
-  }
+    button {
+        padding: 0.65rem 1rem;
+        cursor: pointer;
+    }
 
-  .error {
-    color: #b42318;
-  }
+    .error {
+        color: #b42318;
+    }
 
-  .resultado {
-    margin-top: 1rem;
-    padding: .75rem;
-    background: #eef6ee;
-    border-radius: 6px;
-  }
+    .resultado {
+        margin-top: 1rem;
+        padding: 0.75rem;
+        background: #eef6ee;
+        border-radius: 6px;
+    }
 </style>
