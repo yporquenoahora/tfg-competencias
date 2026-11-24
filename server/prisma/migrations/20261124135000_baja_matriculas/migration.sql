@@ -1,0 +1,1 @@
+ALTER TABLE "Matricula" ADD COLUMN "fechaBaja" TIMESTAMP(3);

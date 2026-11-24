@@ -8,7 +8,15 @@
   export let abrir;
   export let actualizar;
 
+  const acciones = {
+    trasladar: 'Trasladar a otro grupo', baja: 'Dar de baja',
+    retirar: 'Retirar matrícula creada por error', reactivar: 'Reactivar matrícula',
+  };
+  let accion = 'trasladar';
+  let verBajas = false;
+  let nombre = '';
   let filtro = '';
+
   let seleccion = [];
   let destino = '';
   let enfocado = null;
@@ -17,12 +25,13 @@
   let error = '';
   let mensaje = '';
 
-  $: visibles = estudiantes.filter((alumno) =>
+  $: alumnado = verBajas ? (grupo.bajas ?? []) : estudiantes;
+  $: visibles = alumnado.filter((alumno) =>
     `${alumno.nombre} ${alumno.codigo}`.toLocaleLowerCase('es').includes(filtro.trim().toLocaleLowerCase('es')));
-  $: elegidos = estudiantes.filter((alumno) => seleccion.includes(alumno.id));
+  $: elegidos = alumnado.filter((alumno) => seleccion.includes(alumno.id));
   $: destinos = grupos.filter((item) => item.id !== grupo.id && item.curso === grupo.curso);
   $: grupoDestino = destinos.find((item) => String(item.id) === destino);
-  $: alumnoActivo = estudiantes.find((alumno) => alumno.id === enfocado);
+  $: alumnoActivo = alumnado.find((alumno) => alumno.id === enfocado);
 
   async function seleccionarCsv(evento) {
     const campo = evento.currentTarget;
@@ -33,7 +42,7 @@
     try {
       const codigos = new Set(leerCsvEstudiantes(await archivo.text()).map(({ codigo }) => codigo));
       if (confirmar || guardando) return;
-      seleccion = estudiantes.filter((alumno) => codigos.has(alumno.codigo)).map(({ id }) => id);
+      seleccion = alumnado.filter((alumno) => codigos.has(alumno.codigo)).map(({ id }) => id);
       mensaje = `${seleccion.length} de ${codigos.size} códigos del CSV coinciden con el grupo.`;
     } catch (fallo) {
       error = fallo.message;
@@ -42,19 +51,49 @@
     }
   }
 
-  async function trasladar() {
-    if (guardando || !elegidos.length || !grupoDestino) return;
+  function cambiarLista() {
+    verBajas = !verBajas;
+    seleccion = [];
+    enfocado = null;
+    accion = verBajas ? 'reactivar' : 'trasladar';
+    mensaje = '';
+    error = '';
+  }
+
+  async function guardarNombre(evento) {
+    evento.preventDefault();
+    if (!alumnoActivo || !nombre.trim() || guardando) return;
     guardando = true;
     error = '';
     mensaje = '';
     try {
-      const resultado = await api(`/grupos/${grupo.id}/estudiantes/trasladar`, {
+      await api(`/grupos/${grupo.id}/estudiantes/${alumnoActivo.id}/nombre`, {
+        method: 'PATCH', body: JSON.stringify({ nombre }),
+      });
+      mensaje = 'Nombre visible actualizado.';
+      await actualizar();
+    } catch (fallo) {
+      error = fallo.message;
+    } finally {
+      guardando = false;
+    }
+  }
+
+  async function aplicarAccion() {
+    if (guardando || !elegidos.length || (accion === 'trasladar' && !grupoDestino)) return;
+    guardando = true;
+    error = '';
+    mensaje = '';
+    try {
+      const estudianteIds = elegidos.map(({ id }) => id);
+      const traslado = accion === 'trasladar';
+      const resultado = await api(`/grupos/${grupo.id}/estudiantes/${traslado ? 'trasladar' : 'matriculas'}`, {
         method: 'POST',
-        body: JSON.stringify({ destino: grupoDestino.id, estudianteIds: elegidos.map(({ id }) => id) }),
+        body: JSON.stringify(traslado ? { destino: grupoDestino.id, estudianteIds } : { accion, estudianteIds }),
       });
       confirmar = false;
       seleccion = [];
-      mensaje = `${resultado.total} matrículas corregidas. ${resultado.nuevasEnDestino} añadidas al destino y ${resultado.yaEnDestino} ya existentes allí.`;
+      mensaje = traslado ? `${resultado.total} matrículas corregidas. ${resultado.nuevasEnDestino} añadidas al destino y ${resultado.yaEnDestino} ya existentes allí.` : `Matrículas actualizadas: ${resultado.total}.`;
       await actualizar();
     } catch (fallo) {
       error = fallo.message;
@@ -66,12 +105,14 @@
 
 <section class="panel">
   <h2>Mapa del aula</h2>
-  {#if estudiantes.length}
+  <button type="button" class="secundario" disabled={guardando || confirmar}
+    onclick={cambiarLista}>{verBajas ? 'Ver matrículas activas' : `Ver bajas (${grupo.bajas?.length ?? 0})`}</button>
+  {#if alumnado.length}
     <div class="revision-periodo">
       <label>Buscar por nombre o código <input type="search" bind:value={filtro} /></label>
       <button type="button" class="secundario" disabled={confirmar || guardando || !visibles.length}
         onclick={() => (seleccion = [...new Set([...seleccion, ...visibles.map(({ id }) => id)])])}>Seleccionar visibles</button>
-      {#if estudiantes.some((alumno) => ultimoLote.includes(alumno.id))}
+      {#if !verBajas && estudiantes.some((alumno) => ultimoLote.includes(alumno.id))}
         <button type="button" class="secundario" disabled={confirmar || guardando}
           onclick={() => (seleccion = [...ultimoLote])}>Seleccionar última importación</button>
       {/if}
@@ -92,7 +133,7 @@
             <small>{alumno.codigo}</small>
           </label>
           <button type="button" class="secundario ficha" aria-label={`Ver ficha de ${alumno.nombre} (${alumno.codigo})`}
-            onclick={() => (enfocado = alumno.id)}>Ficha</button>
+            onclick={() => { enfocado = alumno.id; nombre = alumno.nombre; }}>Ficha</button>
         </div>
       {:else}<p>No hay coincidencias.</p>{/each}
     </div>
@@ -100,30 +141,51 @@
     {#if alumnoActivo}
       <div class="registro">
         <strong>{alumnoActivo.nombre}</strong> · {alumnoActivo.codigo}
-        <button type="button" class="secundario" onclick={() => abrir(alumnoActivo.id)}>Abrir seguimiento individual</button>
+        {#if !verBajas}
+          <button type="button" class="secundario" onclick={() => abrir(alumnoActivo.id)}>Abrir seguimiento individual</button>
+        {:else}
+          <p>Baja: {new Date(alumnoActivo.fechaBaja).toLocaleDateString('es-ES')}</p>
+        {/if}
+        <form class="formulario" onsubmit={guardarNombre}>
+          <label for="nombre-visible-alumno">Nombre visible en todos sus grupos</label>
+          <input id="nombre-visible-alumno" bind:value={nombre} required maxlength="150" disabled={confirmar || guardando} />
+          <button disabled={confirmar || guardando || !nombre.trim() || nombre.trim() === alumnoActivo.nombre}>Guardar nombre</button>
+        </form>
       </div>
     {/if}
 
     <form class="revision-periodo traslado" onsubmit={(e) => { e.preventDefault(); confirmar = true; error = ''; mensaje = ''; }}>
       <strong>{elegidos.length} seleccionados</strong>
+      <label>Acción
+        <select value={accion} onchange={(e) => (accion = e.currentTarget.value)} disabled={confirmar || guardando}>
+          {#each (verBajas ? ['reactivar', 'retirar'] : ['trasladar', 'baja', 'retirar']) as clave (clave)}
+            <option value={clave}>{acciones[clave]}</option>
+          {/each}
+        </select>
+      </label>
+      {#if accion === 'trasladar'}
       <label>Trasladar al grupo
         <select value={destino} onchange={(e) => (destino = e.currentTarget.value)} disabled={confirmar || guardando} required>
           <option value="">Selecciona un destino</option>
           {#each destinos as item (item.id)}<option value={String(item.id)}>{item.nombre}</option>{/each}
         </select>
       </label>
-      <button disabled={!grupoDestino || !elegidos.length || confirmar || guardando}>Revisar traslado</button>
+      {/if}
+      <button disabled={(accion === 'trasladar' && !grupoDestino) || !elegidos.length || confirmar || guardando}>Revisar acción</button>
     </form>
     {#if confirmar}
       <div class="registro">
-        <h3>Trasladar de {grupo.nombre} a {grupoDestino?.nombre}</h3>
+        <h3>{acciones[accion]} · {grupo.nombre}</h3>
+        {#if accion === 'trasladar'}<p>Destino: {grupoDestino?.nombre}</p>{/if}
+        {#if accion === 'baja'}<p>La matrícula dejará de estar activa. El historial se conserva.</p>{/if}
+        {#if accion === 'retirar'}<p>Se retirará la matrícula de este grupo si no tiene ningún registro de seguimiento asociado.</p>{/if}
         <ul>{#each elegidos as alumno (alumno.id)}<li>{alumno.nombre} · {alumno.codigo}</li>{/each}</ul>
-        <button type="button" disabled={guardando} onclick={trasladar}>Confirmar traslado</button>
+        <button type="button" disabled={guardando} onclick={aplicarAccion}>Confirmar acción</button>
         <button type="button" class="secundario" disabled={guardando} onclick={() => (confirmar = false)}>Volver a la selección</button>
       </div>
     {/if}
   {:else}
-    <p>Importa un CSV para ver el alumnado de este grupo.</p>
+    <p>{verBajas ? 'Este grupo no tiene matrículas de baja.' : 'Importa un CSV para ver el alumnado de este grupo.'}</p>
   {/if}
   {#if error}<p class="error" role="alert">{error}</p>{/if}
   {#if mensaje}<p class="exito" role="status">{mensaje}</p>{/if}

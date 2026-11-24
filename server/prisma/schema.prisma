@@ -119,6 +119,7 @@ model Matricula {
   estudianteId Int
   grupoId      Int
   fechaAlta    DateTime @default(now())
+  fechaBaja    DateTime?
 
   estudiante Estudiante @relation(fields: [estudianteId], references: [id], onDelete: Restrict)
   grupo      Grupo      @relation(fields: [grupoId], references: [id], onDelete: Restrict)

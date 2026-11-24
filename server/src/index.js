@@ -315,7 +315,9 @@ app.get('/api/grupos/:grupoId/estudiantes', async (req, res) => {
         const ficha = codigo?.startsWith('oficial:') && catalogoCurricular.get(codigo.slice(8));
         return !ficha || !grupo.ciclo || moduloCompatible(ficha, grupo.ciclo);
       }),
-      estudiantes: grupo.matriculas
+      bajas: grupo.matriculas.filter((m) => m.fechaBaja)
+        .map((m) => ({ ...m.estudiante, fechaBaja: m.fechaBaja })),
+      estudiantes: grupo.matriculas.filter((m) => !m.fechaBaja)
         .map(matricula => matricula.estudiante)
         .sort((a, b) => a.codigo.localeCompare(b.codigo))
     });
@@ -358,7 +360,7 @@ app.post('/api/valoraciones/bloque', async (req, res) => {
       });
       if (!seleccion) return null;
       const matriculas = await tx.matricula.count({
-        where: { grupoId: imparticion.grupoId, estudianteId: { in: ids } },
+        where: { grupoId: imparticion.grupoId, estudianteId: { in: ids }, fechaBaja: null },
       });
       if (matriculas !== ids.length) return null;
       const descriptor = await descriptorValoracion(tx, indicadorId, nivel);
@@ -432,6 +434,7 @@ app.post('/api/valoraciones', async (req, res) => {
 
     const matricula = await prisma.matricula.findFirst({
       where: {
+        fechaBaja: null,
         estudianteId,
         grupoId: imparticion.grupoId
       }
@@ -614,7 +617,7 @@ app.get('/api/curso/seguimiento', async (req, res) => {
       where: { curso },
       include: {
         modulo: { select: { codigo: true } },
-        grupo: { include: { matriculas: { select: { estudianteId: true } } } },
+        grupo: { include: { matriculas: { where: { fechaBaja: null }, select: { estudianteId: true } } } },
         hitosRevision: {
           where: { fecha: { gte: inicio, lt: fin } },
           orderBy: [{ fecha: 'asc' }, { id: 'asc' }],
@@ -697,6 +700,7 @@ app.get('/api/imparticiones/:id/seguimiento', async (req, res) => {
         grupo: {
           include: {
             matriculas: {
+              where: { fechaBaja: null },
               include: { estudiante: true }
             }
           }
@@ -950,6 +954,7 @@ app.post('/api/planes-refuerzo', async (req, res) => {
     // 5. Comprobar pertenencia al grupo
     const matricula = await prisma.matricula.findFirst({
       where: {
+        fechaBaja: null,
         estudianteId,
         grupoId: imparticion.grupoId
       }
@@ -1329,6 +1334,7 @@ app.post('/api/evidencias', async (req, res) => {
 
     const matricula = await prisma.matricula.findFirst({
       where: {
+        fechaBaja: null,
         estudianteId,
         grupoId: actividad.imparticion.grupoId
       }
@@ -1474,6 +1480,7 @@ app.get('/api/evidencias', async (req, res) => {
 
     const matricula = await prisma.matricula.findFirst({
       where: {
+        fechaBaja: null,
         estudianteId,
         grupoId: actividad.imparticion.grupoId
       }
@@ -1777,6 +1784,76 @@ app.get('/api/indicadores/:id/criterios', async (req, res) => {
 });
 
 
+async function alumnadoConHistorial(tx, origen, ids) {
+  const filtro = { estudianteId: { in: ids }, imparticion: { grupoId: origen } };
+  const [valoraciones, planes, evidencias] = await Promise.all([
+    tx.valoracion.findMany({ where: filtro, distinct: ['estudianteId'], select: { estudianteId: true } }),
+    tx.planRefuerzo.findMany({ where: filtro, distinct: ['estudianteId'], select: { estudianteId: true } }),
+    tx.evidencia.findMany({
+      where: { estudianteId: filtro.estudianteId, actividad: { imparticion: { grupoId: origen } } },
+      distinct: ['estudianteId'], select: { estudianteId: true },
+    }),
+  ]);
+  return new Set([...valoraciones, ...planes, ...evidencias].map((fila) => fila.estudianteId));
+}
+
+app.patch('/api/grupos/:grupoId/estudiantes/:estudianteId/nombre', async (req, res) => {
+  const grupoId = Number(req.params.grupoId);
+  const estudianteId = Number(req.params.estudianteId);
+  const nombre = typeof req.body?.nombre === 'string' ? req.body.nombre.trim() : '';
+  if (![grupoId, estudianteId].every((id) => Number.isSafeInteger(id) && id > 0) ||
+      !nombre || nombre.length > 150) {
+    return res.status(400).json({ error: 'Escribe un nombre de hasta 150 caracteres' });
+  }
+  try {
+    const matricula = { grupoId, estudianteId };
+    const resultado = await prisma.estudiante.updateMany({
+      where: { id: estudianteId, matriculas: { some: matricula } }, data: { nombre },
+    });
+    if (!resultado.count) return res.status(404).json({ error: 'Alumno no encontrado en ese grupo' });
+    res.json({ estudianteId, nombre });
+  } catch (error) {
+    console.error('Error al actualizar nombre:', error);
+    res.status(500).json({ error: 'No se pudo guardar el nombre' });
+  }
+});
+
+app.post('/api/grupos/:grupoId/estudiantes/matriculas', async (req, res) => {
+  const grupoId = Number(req.params.grupoId);
+  const { accion, estudianteIds } = req.body ?? {};
+  const idValido = (id) => Number.isSafeInteger(id) && id > 0;
+  if (!idValido(grupoId) || !['baja', 'reactivar', 'retirar'].includes(accion) ||
+      !Array.isArray(estudianteIds) || !estudianteIds.length || estudianteIds.length > 500 ||
+      !estudianteIds.every(idValido)) {
+    return res.status(400).json({ error: 'Selecciona una acción y al menos un alumno' });
+  }
+  const ids = [...new Set(estudianteIds)];
+  try {
+    const resultado = await prisma.$transaction(async (tx) => {
+      const where = { grupoId, estudianteId: { in: ids },
+        ...(accion === 'baja' ? { fechaBaja: null } : accion === 'reactivar' ? { fechaBaja: { not: null } } : {}) };
+      if (await tx.matricula.count({ where }) !== ids.length) {
+        return { error: 'La matrícula ha cambiado. Actualiza el grupo y vuelve a seleccionar.' };
+      }
+      if (accion === 'retirar') {
+        const conHistorial = await alumnadoConHistorial(tx, grupoId, ids);
+        if (conHistorial.size) {
+          const alumnos = await tx.estudiante.findMany({ where: { id: { in: [...conHistorial] } } });
+          return { error: `Tienen seguimiento en este grupo: ${alumnos.map((a) => a.codigo).join(', ')}. Usa la baja para conservar su matrícula e historial.` };
+        }
+        return tx.matricula.deleteMany({ where });
+      }
+      return tx.matricula.updateMany({ where, data: { fechaBaja: accion === 'baja' ? new Date() : null } });
+    }, { isolationLevel: 'Serializable' });
+    if (resultado.error) return res.status(409).json(resultado);
+    res.json({ total: resultado.count });
+  } catch (error) {
+    if (error.code === 'P2034') return res.status(409).json({ error: 'Actualiza el grupo y vuelve a intentarlo' });
+    console.error('Error al actualizar matrículas:', error);
+    res.status(500).json({ error: 'No se pudieron actualizar las matrículas' });
+  }
+});
+
 app.post('/api/grupos/:grupoId/estudiantes/trasladar', async (req, res) => {
   const origen = Number(req.params.grupoId);
   const { destino, estudianteIds } = req.body ?? {};
@@ -1797,22 +1874,16 @@ app.post('/api/grupos/:grupoId/estudiantes/trasladar', async (req, res) => {
         where: { grupoId: { in: [origen, destino] }, estudianteId: { in: ids } },
         include: { estudiante: { select: { nombre: true, codigo: true } } },
       });
-      const actuales = matriculas.filter((m) => m.grupoId === origen);
+      const actuales = matriculas.filter((m) => m.grupoId === origen && !m.fechaBaja);
       if (actuales.length !== ids.length) return { error: 'La matrícula ha cambiado. Actualiza el grupo y vuelve a seleccionar.' };
-      const filtro = { estudianteId: { in: ids }, imparticion: { grupoId: origen } };
-      const [valoraciones, planes, evidencias] = await Promise.all([
-        tx.valoracion.findMany({ where: filtro, distinct: ['estudianteId'], select: { estudianteId: true } }),
-        tx.planRefuerzo.findMany({ where: filtro, distinct: ['estudianteId'], select: { estudianteId: true } }),
-        tx.evidencia.findMany({
-          where: { estudianteId: filtro.estudianteId, actividad: { imparticion: { grupoId: origen } } },
-          distinct: ['estudianteId'], select: { estudianteId: true },
-        }),
-      ]);
-      const historial = new Set([...valoraciones, ...planes, ...evidencias].map((fila) => fila.estudianteId));
+      const historial = await alumnadoConHistorial(tx, origen, ids);
       if (historial.size) {
         const nombres = actuales.filter((m) => historial.has(m.estudianteId))
           .map((m) => `${m.estudiante.nombre} (${m.estudiante.codigo})`);
         return { error: `Estos alumnos tienen seguimiento en el origen: ${nombres.join(', ')}. Retíralos de la selección para mover el resto.` };
+      }
+      if (matriculas.some((m) => m.grupoId === destino && m.fechaBaja)) {
+        return { error: 'Hay alumnado de baja en el destino. Reactiva allí su matrícula antes de trasladarlo.' };
       }
       const yaEnDestino = new Set(matriculas.filter((m) => m.grupoId === destino).map((m) => m.estudianteId));
       const duplicadas = actuales.filter((m) => yaEnDestino.has(m.estudianteId)).map((m) => m.id);
