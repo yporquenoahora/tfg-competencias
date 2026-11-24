@@ -40,8 +40,6 @@ export function crearPlanRefuerzo({
 
 /**
  * Actualiza un plan.
- * Requiere implementar PATCH en el backend.
- * No utilizar todavía.
  */
 export function actualizarPlanRefuerzo(planId, cambios) {
   return api(`/planes-refuerzo/${planId}`, {

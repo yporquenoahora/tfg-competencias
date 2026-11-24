@@ -329,3 +329,27 @@ button.secundario:disabled { background: #F8EEE7; color: #8B776C; border-color: 
   font: inherit;
   color: inherit;
 }
+
+.revision-periodo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+}
+
+.revision-periodo label {
+  display: grid;
+  gap: 4px;
+  font-size: .875rem;
+  font-weight: 600;
+}
+
+.revision-periodo input,
+.revision-periodo select {
+  min-height: 38px;
+  border: 1px solid #bcada2;
+  border-radius: 6px;
+  padding: 5px 8px;
+  background: white;
+  color: inherit;
+}

@@ -1,3 +1,4 @@
+import { intervalo, resumirIndicadores } from './periodos.js';
 
 import express from 'express';
 import cors from 'cors';
@@ -516,6 +517,64 @@ app.get('/api/estudiantes/:id/valoraciones', async (req, res) => {
   }
 });
 
+app.get('/api/curso/seguimiento', async (req, res) => {
+  const { curso } = req.query;
+  if (typeof curso !== 'string' || !/^\d{4}\/\d{4}$/.test(curso)) {
+    return res.status(400).json({ error: 'Selecciona un curso académico' });
+  }
+  const [primero, segundo] = curso.split('/');
+  const inicio = new Date(`${primero}-09-01T00:00:00Z`);
+  const fin = new Date(`${segundo}-07-01T00:00:00Z`);
+  if (Number(segundo) !== Number(primero) + 1) {
+    return res.status(400).json({ error: 'El curso académico debe abarcar dos años consecutivos' });
+  }
+  try {
+    const imparticiones = await prisma.imparticionModulo.findMany({
+      where: { curso },
+      include: {
+        modulo: { select: { codigo: true } },
+        grupo: { include: { matriculas: { select: { estudianteId: true } } } },
+        valoraciones: {
+          where: { fecha: { gte: inicio, lt: fin } },
+          select: { estudianteId: true, indicadorId: true, fecha: true, nivel: true },
+          orderBy: [{ fecha: 'desc' }, { id: 'desc' }],
+        },
+      },
+      orderBy: [{ grupoId: 'asc' }, { id: 'asc' }],
+    });
+    const filas = imparticiones.filter((i) => {
+      const codigo = i.modulo?.codigo;
+      const ficha = codigo?.startsWith('oficial:') && catalogoCurricular.get(codigo.slice(8));
+      return !ficha || !i.grupo.ciclo || moduloCompatible(ficha, i.grupo.ciclo);
+    }).map((i) => {
+      const matriculados = new Set(i.grupo.matriculas.map((m) => m.estudianteId));
+      const ventanas = new Map();
+      for (const v of i.valoraciones) {
+        if (!matriculados.has(v.estudianteId)) continue;
+        const indice = Math.floor((v.fecha - inicio) / (14 * 86400000));
+        const ventana = ventanas.get(indice) ?? { pares: new Set(), observados: new Set(), dificultad: new Set() };
+        ventanas.set(indice, ventana);
+        const clave = `${v.estudianteId}/${v.indicadorId}`;
+        if (ventana.pares.has(clave)) continue;
+        ventana.pares.add(clave);
+        ventana.observados.add(v.estudianteId);
+        if (v.nivel <= 2) ventana.dificultad.add(v.estudianteId);
+      }
+      return {
+        id: i.id, grupoId: i.grupoId, grupo: i.grupo.nombre, modulo: i.nombreModulo,
+        total: matriculados.size,
+        ventanas: [...ventanas].map(([indice, v]) => ({
+          indice, observados: v.observados.size, dificultad: v.dificultad.size,
+        })),
+      };
+    });
+    res.json({ inicio, fin, filas });
+  } catch (error) {
+    console.error('Error al consultar la evolución del curso:', error);
+    res.status(500).json({ error: 'No se pudo cargar la evolución del curso' });
+  }
+});
+
 app.get('/api/imparticiones/:id/seguimiento', async (req, res) => {
   try {
     const imparticionId = Number(req.params.id);
@@ -525,6 +584,14 @@ app.get('/api/imparticiones/:id/seguimiento', async (req, res) => {
         error: 'Identificador de impartición no válido'
       });
     }
+
+    let periodo;
+    try {
+      periodo = intervalo(req.query.desde, req.query.hasta);
+    } catch (error) {
+      return res.status(400).json({ error: error.message });
+    }
+    const { inicio, fin } = periodo;
 
     const imparticion = await prisma.imparticionModulo.findUnique({
       where: { id: imparticionId },
@@ -545,8 +612,9 @@ app.get('/api/imparticiones/:id/seguimiento', async (req, res) => {
       });
     }
 
-    const valoraciones = await prisma.valoracion.findMany({
-      where: { imparticionId },
+    const matriculados = imparticion.grupo.matriculas.map(({ estudianteId }) => estudianteId);
+    const historial = await prisma.valoracion.findMany({
+      where: { imparticionId, estudianteId: { in: matriculados }, ...(fin && { fecha: { lt: fin } }) },
       include: {
         estudiante: true,
         indicador: true
@@ -557,6 +625,8 @@ app.get('/api/imparticiones/:id/seguimiento', async (req, res) => {
       ]
     });
 
+    const valoraciones = historial.filter((v) => !inicio || v.fecha >= inicio);
+
     const estudiantes = imparticion.grupo.matriculas.map(
       matricula => matricula.estudiante
     );
@@ -564,7 +634,7 @@ app.get('/api/imparticiones/:id/seguimiento', async (req, res) => {
     // Agrupar observaciones por estudiante e indicador.
     const grupos = new Map();
 
-    for (const valoracion of valoraciones) {
+    for (const valoracion of historial) {
       const clave = `${valoracion.estudianteId}-${valoracion.indicadorId}`;
 
       if (!grupos.has(clave)) {
@@ -584,7 +654,7 @@ app.get('/api/imparticiones/:id/seguimiento', async (req, res) => {
       // Ya están ordenados del más reciente al más antiguo.
       const [ultima, anterior] = registros;
 
-      if (ultima.nivel > 2) continue;
+      if ((inicio && ultima.fecha < inicio) || ultima.nivel > 2) continue;
 
       const aviso = {
         estudianteId: ultima.estudianteId,
@@ -628,6 +698,32 @@ app.get('/api/imparticiones/:id/seguimiento', async (req, res) => {
 
 
 
+    const refuerzos = await prisma.planRefuerzo.findMany({
+      where: {
+        imparticionId,
+        estudianteId: { in: matriculados },
+        estado: { in: ['pendiente', 'en_progreso'] },
+        ...(fin && { fechaInicio: { lt: fin } }),
+      },
+      include: { estudiante: true },
+      orderBy: [{ fechaRevision: 'asc' }, { id: 'asc' }],
+    });
+
+    const porIndicador = resumirIndicadores(valoraciones);
+    if (imparticion.moduloId && porIndicador.length) {
+      const vinculos = await prisma.indicadorCriterio.findMany({
+        where: {
+          indicadorId: { in: porIndicador.map((fila) => fila.id) },
+          criterio: { resultado: { moduloId: imparticion.moduloId } },
+        },
+        include: { criterio: { include: { resultado: true } } },
+      });
+      for (const fila of porIndicador) {
+        fila.criterios = vinculos.filter((v) => v.indicadorId === fila.id)
+          .map(({ criterio }) => ({ ra: criterio.resultado.codigo, ce: criterio.codigo, texto: criterio.texto }));
+      }
+    }
+
     res.json({
       imparticion: {
         id: imparticion.id,
@@ -655,6 +751,13 @@ app.get('/api/imparticiones/:id/seguimiento', async (req, res) => {
         indicadoresConDificultades: indicadoresPrioritarios.size
       },
 
+      porIndicador,
+      sinObservaciones: estudiantes.filter((item) => !estudiantesObservados.has(item.id))
+        .map(({ id, nombre }) => ({ id, nombre })),
+      refuerzos: refuerzos.map((p) => ({
+        id: p.id, estudianteId: p.estudianteId, nombre: p.estudiante.nombre,
+        indicadorId: p.indicadorId, objetivo: p.objetivo, fechaRevision: p.fechaRevision,
+      })),
       atencionesIniciales,
       dificultades
     });
@@ -789,6 +892,25 @@ app.post('/api/planes-refuerzo', async (req, res) => {
 });
 
 
+
+app.patch('/api/planes-refuerzo/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  const { estado, estudianteId, imparticionId } = req.body ?? {};
+  if (![id, estudianteId, imparticionId].every((n) => Number.isSafeInteger(n) && n > 0) ||
+      !['pendiente', 'en_progreso', 'revisado'].includes(estado)) {
+    return res.status(400).json({ error: 'Plan o estado no válido' });
+  }
+  try {
+    const actualizado = await prisma.planRefuerzo.updateMany({
+      where: { id, estudianteId, imparticionId }, data: { estado },
+    });
+    if (!actualizado.count) return res.status(404).json({ error: 'Plan no encontrado' });
+    res.json({ id, estado });
+  } catch (error) {
+    console.error('Error al revisar plan de refuerzo:', error);
+    res.status(500).json({ error: 'No se pudo actualizar el plan' });
+  }
+});
 
 app.get('/api/estudiantes/:id/planes-refuerzo', async (req, res) => {
   try {

@@ -22,8 +22,11 @@ export async function obtenerHistorial(estudianteId) {
 /**
  * Obtiene el seguimiento grupal de una impartición.
  */
-export function obtenerSeguimientoGrupal(imparticionId) {
-  return api(`/imparticiones/${imparticionId}/seguimiento`);
+export function obtenerSeguimientoGrupal(imparticionId, { desde, hasta } = {}) {
+  const filtros = new URLSearchParams();
+  if (desde) filtros.set('desde', desde);
+  if (hasta) filtros.set('hasta', hasta);
+  return api(`/imparticiones/${imparticionId}/seguimiento?${filtros}`);
 }
 
 /**

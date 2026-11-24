@@ -216,6 +216,21 @@ La primera carga curricular cubre las atribuciones identificadas en los reales d
 
 El alta desde la interfaz registra el currículo y la impartición en una misma operación. Para asociar un indicador concreto a un criterio curricular, se utiliza la API `POST /api/indicadores/:id/criterios` con `criterioId`.
 
+## Demo de defensa
+
+Con la base configurada y las migraciones aplicadas, ejecuta `node scripts/preparar-demo.mjs` desde `server`. Se crean cinco grupos identificados con «· Demo», sus matrículas, una impartición y dos quincenas de observaciones sintéticas de septiembre de 2026. Volver a ejecutar el comando conserva los grupos demo que ya existen. Los CSV de `server/demo` también se pueden usar por separado para ensayar la importación manual en **Grupo**.
+
+1. Abre **Curso** y pulsa **Ver dificultad compartida**. En Lenguajes de Marcas aparecen 8 alumnos con dificultad de 19 observados. Hay un alumno sin observaciones.
+2. Selecciona la celda de una impartición. **Grupo** abre esa quincena con un gráfico por indicador y sus referentes curriculares, si están vinculados. Se cuentan las últimas observaciones por alumno e indicador durante el periodo. La revisión prioritaria usa también la observación inmediatamente anterior si precede al intervalo.
+3. Vuelve a **Curso** y pulsa **Ver evolución tras el refuerzo**. En la segunda quincena quedan 3 de 19 con dificultades. En el detalle, abre un alumno con refuerzo y registra si queda pendiente, en progreso o revisado. El panel muestra el estado actual del plan.
+4. En **Alumno**, amplía el intervalo de informe a `01/09/2026–30/09/2026` y genera el documento imprimible para ver ambas observaciones. **Reiniciar vista** limpia los filtros de la línea temporal y mantiene los datos registrados.
+
+### Trazabilidad curricular y programación didáctica
+
+El currículo se almacena como **módulo → resultado de aprendizaje → criterio de evaluación**. Cada CE pertenece a un RA. La tabla `IndicadorCriterio` relaciona indicadores de seguimiento con CE y las vistas filtran las asociaciones por el currículo de la impartición activa. Los vínculos se dan de alta mediante `POST /api/indicadores/:id/criterios` o se preparan en la carga sintética. Son asociaciones pedagógicas orientativas.
+
+El circuito de evidencias es **actividad de la impartición → evidencia de un alumno → valoración del indicador**. Para documentar la programación didáctica, declara en ella qué **unidad de trabajo** incluye cada actividad, qué RA y CE se trabajan y qué instrumento recoge la evidencia. En esta versión se puede identificar la unidad en el título o la descripción de la actividad. El modelo carece de una entidad «Unidad de trabajo» y de una relación directa actividad–CE. La asociación por indicador permanece diferenciada de una calificación curricular.
+
 ## API REST inicial
 
 Actualmente se dispone de los siguientes endpoints:

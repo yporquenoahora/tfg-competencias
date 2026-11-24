@@ -3,11 +3,29 @@
     import PlanesRefuerzo from '../components/PlanesRefuerzo.svelte';
     import { API_BASE } from '../lib/api.js';
 
+    export let informeDesde = '';
+    export let informeHasta = '';
+    let desdeInforme = '';
+    let hastaInforme = '';
+    $: desdeInforme = informeDesde;
+    $: hastaInforme = informeHasta;
+
+    const fechaInforme = new Intl.DateTimeFormat('sv-SE', {
+        timeZone: 'UTC', year: 'numeric', month: '2-digit', day: '2-digit',
+    });
+    function enPeriodo(fecha) {
+        const instante = new Date(fecha);
+        if (!fecha || !Number.isFinite(+instante)) return false;
+        const dia = fechaInforme.format(instante);
+        return (!desdeInforme || dia >= desdeInforme) && (!hastaInforme || dia <= hastaInforme);
+    }
+
     export let grupo = null;
     export let estudiantes = [];
     export let imparticiones = [];
     export let configuraciones = [];
     export let evaluables = [];
+    export let cambiarEstadoPlan;
     export let guardarPlan;
     export let estudianteElegido = '';
     export let imparticionElegida = '';
@@ -232,6 +250,11 @@
 
     async function exportarInforme() {
         errorInforme = '';
+        if (desdeInforme && hastaInforme && desdeInforme > hastaInforme) {
+            errorInforme = 'La fecha de inicio debe preceder a la fecha de fin.';
+            return;
+        }
+        const periodo = `${desdeInforme || 'Inicio del seguimiento'} — ${hastaInforme || 'Último registro'}`;
 
         const estudiante = estudiantes.find(
             (e) => String(e.id) === String(estudianteElegido),
@@ -266,7 +289,7 @@
         exportandoInforme = true;
 
         try {
-            const valoraciones = [...historialModulo].sort(
+            const valoraciones = historialModulo.filter((v) => enPeriodo(v.fecha)).sort(
                 (a, b) => new Date(b.fecha) - new Date(a.fecha),
             );
 
@@ -375,7 +398,10 @@
                     <td>${escaparHTML(item.tendencia)}</td><td>${escaparHTML(item.estado)}</td>
                     <td>${textoCurricular}</td></tr>`;
             }).join('');
-            const planesModulo = planes.filter(p => Number(p.imparticionId) === Number(imparticionElegida));
+            const planesModulo = planes.filter(p =>
+                Number(p.imparticionId) === Number(imparticionElegida) &&
+                ((!desdeInforme && !hastaInforme) || enPeriodo(p.fechaInicio) || enPeriodo(p.fechaRevision)),
+            );
             const filasPlanes = planesModulo.map(p => `<tr>
                 <td>${escaparHTML(p.indicador?.descripcion ?? 'Indicador')}</td>
                 <td>${escaparHTML(p.objetivo)}</td>
@@ -431,6 +457,7 @@
     <p class="nota">Competencias transversales · Formación Profesional</p>
 
     <div class="metadatos">
+        <p><strong>Periodo:</strong> ${escaparHTML(periodo)}</p>
         <p><strong>Estudiante:</strong>
         ${escaparHTML(estudiante.nombre)} (${escaparHTML(estudiante.codigo)})</p>
         <p><strong>Grupo:</strong> ${escaparHTML(grupo.nombre)}</p>
@@ -513,6 +540,10 @@
                 </p>
             </div>
             <div class="acciones-informe">
+                <div class="revision-periodo">
+                    <label>Informe desde <input type="date" bind:value={desdeInforme} /></label>
+                    <label>Informe hasta <input type="date" bind:value={hastaInforme} /></label>
+                </div>
                 <button
                     type="button"
                     class="accion-primaria"
@@ -976,6 +1007,7 @@
                         indicadores={indicadoresPlan}
                         propuestas={propuestasRefuerzo}
                         {guardarPlan}
+                        {cambiarEstadoPlan}
                     />
                 {/if}
             </div>

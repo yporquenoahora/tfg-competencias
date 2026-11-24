@@ -6,6 +6,23 @@
   export let imparticionId = '';
   export let indicadores = [];
   export let propuestas = [];
+  export let cambiarEstadoPlan;
+  let actualizandoPlan = null;
+  let errorEstado = '';
+  const estados = { pendiente: 'Pendiente', en_progreso: 'En progreso', revisado: 'Revisado' };
+
+  async function actualizarEstado(plan, estado) {
+    actualizandoPlan = plan.id;
+    errorEstado = '';
+    try {
+      await cambiarEstadoPlan(plan, estado);
+    } catch (error) {
+      errorEstado = error.message;
+    } finally {
+      actualizandoPlan = null;
+    }
+  }
+
   export let guardarPlan;
 
   $: visibles = planes.filter(p => Number(p.imparticionId) === Number(imparticionId));
@@ -61,6 +78,7 @@
 
 <section class="subpanel" aria-label="Planes de refuerzo del estudiante">
   <h3>Planes de refuerzo del estudiante</h3>
+  {#if errorEstado}<p class="error" role="alert">{errorEstado}</p>{/if}
   {#if !estudianteId}
     <p>Selecciona un estudiante.</p>
   {:else if cargando}
@@ -73,11 +91,17 @@
     <div class="lista">
       {#each visibles as plan (plan.id)}
         <article class="registro">
-          <div class="cabecera"><h4>{plan.objetivo}</h4><span class="etiqueta-estado">{plan.estado}</span></div>
+          <div class="cabecera"><h4>{plan.objetivo}</h4><span class="etiqueta-estado">{estados[plan.estado] ?? plan.estado}</span></div>
           <p><strong>Indicador:</strong> {plan.indicador.descripcion}</p>
           <p><strong>Estrategia:</strong> {plan.descripcion}</p>
           <p><strong>Módulo:</strong> {plan.imparticion.nombreModulo}</p>
           <p><strong>Fecha de revisión:</strong> {plan.fechaRevision ? new Date(plan.fechaRevision).toLocaleDateString('es-ES') : 'Sin establecer'}</p>
+          <div class="acciones">
+            {#each Object.entries(estados).filter(([clave]) => clave !== plan.estado) as [clave, etiqueta] (clave)}
+              <button type="button" class="secundario" disabled={actualizandoPlan !== null}
+                onclick={() => actualizarEstado(plan, clave)}>Marcar como {etiqueta.toLowerCase()}</button>
+            {/each}
+          </div>
         </article>
       {/each}
     </div>

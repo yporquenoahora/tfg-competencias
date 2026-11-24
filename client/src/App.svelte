@@ -2,11 +2,13 @@
   import { onMount } from 'svelte';
   import { api } from './lib/api.js';
   import Catalogo from './components/Catalogo.svelte';
+  import TimelineCurso from './components/TimelineCurso.svelte';
   import DashboardGrupal from './components/DashboardGrupal.svelte';
   import SeguimientoIndividual from './components/SeguimientoIndividual.svelte';
   import ImportarModulo from './components/ImportarModulo.svelte';
   import ImportarEstudiantes from './components/ImportarEstudiantes.svelte';
   import {
+    actualizarPlanRefuerzo,
     crearPlanRefuerzo,
     obtenerPlanesRefuerzo,
   } from './lib/planesRefuerzo.js';
@@ -18,6 +20,8 @@
   } from './lib/seguimiento.js';
   import './app.css';
 
+  let desde = '';
+  let hasta = '';
   let vistaActiva = 'evaluacion';
   let rubricas = [];
   let errorRubricas = '';
@@ -26,6 +30,7 @@
   const vistas = [
     { id: 'evaluacion', nombre: 'Alumno', detalle: 'Consulta su evolución, registra observaciones y prepara refuerzos.' },
     { id: 'grupo', nombre: 'Grupo', detalle: 'Consulta las dificultades observadas en el grupo y abre el seguimiento de cada alumno.' },
+    { id: 'curso', nombre: 'Curso', detalle: 'Compara la cobertura y las dificultades de tus grupos por quincena.' },
     { id: 'catalogo', nombre: 'Catálogo', detalle: 'Elige los indicadores que quieres observar en el módulo activo.' },
     { id: 'modulos', nombre: 'Módulos', detalle: 'Incorpora un módulo y sus referentes curriculares al grupo actual.' },
   ];
@@ -94,6 +99,17 @@
     } catch (error) {
       errorRubricas = error.message;
     }
+  }
+
+  async function cambiarEstadoPlan(plan, estado) {
+    const estudianteId = Number(estudianteElegido);
+    const imparticionId = Number(imparticionElegida);
+    if (plan.estudianteId !== estudianteId || plan.imparticionId !== imparticionId) {
+      throw new Error('El plan pertenece a otro contexto de seguimiento');
+    }
+    await actualizarPlanRefuerzo(plan.id, { estado, estudianteId, imparticionId });
+    planes = planes.map((item) => item.id === plan.id ? { ...item, estado } : item);
+    void cargarSeguimiento();
   }
 
   async function guardarPlan(datos) {
@@ -285,13 +301,22 @@
     }
     cargandoSeguimiento = true;
     try {
-      const datos = await obtenerSeguimientoGrupal(id);
+      const datos = await obtenerSeguimientoGrupal(id, { desde, hasta });
       if (actual === solicitudSeguimiento) seguimiento = datos;
     } catch (error) {
       if (actual === solicitudSeguimiento) errorSeguimiento = error.message;
     } finally {
       if (actual === solicitudSeguimiento) cargandoSeguimiento = false;
     }
+  }
+
+  async function abrirRevision(fila, inicio, fin) {
+    desde = inicio;
+    hasta = fin;
+    if (String(fila.grupoId) !== grupoElegido) await cargarGrupo(String(fila.grupoId));
+    vistaActiva = 'grupo';
+    if (String(fila.id) === imparticionElegida) await cargarSeguimiento();
+    else seleccionarModulo(String(fila.id));
   }
 
   function seleccionarModulo(id) {
@@ -547,6 +572,8 @@
               bind:evidenciaIdSeleccionada
               {historial}
               {planes}
+              informeDesde={desde}
+              informeHasta={hasta}
               {cargandoHistorial}
               {cargandoPlanes}
               {errorHistorial}
@@ -558,6 +585,7 @@
               {recuperarConfiguracion}
               {guardarValoracion}
               {guardarPlan}
+              {cambiarEstadoPlan}
               {rubricas}
               {errorRubricas}
               abrirCatalogo={() => (vistaActiva = 'catalogo')}
@@ -566,7 +594,17 @@
         </section>
       {/if}
 
+      {#if vistaActiva === 'curso'}
+        <TimelineCurso cursos={[...new Set(grupos.map((g) => g.curso))]} abrir={abrirRevision} />
+      {/if}
+
       {#if vistaActiva === 'grupo'}
+        <form class="panel revision-periodo" onsubmit={(evento) => { evento.preventDefault(); cargarSeguimiento(); }}>
+          <label>Desde <input type="date" bind:value={desde} /></label>
+          <label>Hasta <input type="date" bind:value={hasta} /></label>
+          <button>Revisar periodo</button>
+          <button class="secundario" type="button" onclick={() => { desde = ''; hasta = ''; cargarSeguimiento(); }}>Todo el curso</button>
+        </form>
         <DashboardGrupal
           {seguimiento}
           cargando={cargandoSeguimiento}
