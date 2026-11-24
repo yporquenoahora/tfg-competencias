@@ -248,20 +248,17 @@
     cambiarModulo();
   }
 
-  async function importarModulo(datos) {
-    const modulo = await api(`/grupos/${grupo.id}/modulos`, {
+  async function importarModulo(catalogoId) {
+    const imparticion = await api(`/grupos/${grupo.id}/modulos/catalogo`, {
       method: 'POST',
-      body: JSON.stringify(datos),
+      body: JSON.stringify({ catalogoId }),
     });
 
-    const imparticion = modulo.imparticiones?.[0];
-    if (!imparticion) {
-      throw new Error('El servidor ha importado el currículo, pero no ha creado la impartición para este grupo.');
+    if (!imparticiones.some((item) => item.id === imparticion.id)) {
+      imparticiones = [...imparticiones, imparticion];
     }
-
-    imparticiones = [...imparticiones, { ...imparticion, modulo }];
     seleccionarModulo(String(imparticion.id));
-    mensajeModulo = `${modulo.nombre} se ha añadido al grupo. Selecciona al menos un indicador y guarda su configuración.`;
+    mensajeModulo = `${imparticion.nombreModulo} está activo. Elige los indicadores y guarda su configuración.`;
     vistaActiva = 'catalogo';
   }
 
@@ -418,7 +415,7 @@
       {/if}
 
       {#if vistaActiva === 'modulos'}
-        <ImportarModulo {grupo} guardar={importarModulo} />
+        <ImportarModulo {grupo} {imparticiones} guardar={importarModulo} />
       {/if}
 
       <div hidden={vistaActiva !== 'catalogo'}>

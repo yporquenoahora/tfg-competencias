@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import 'dotenv/config';
 import { prisma } from './db.js';
+import { catalogoCurricular } from './catalogoCurricular.js';
 
 const app = express();
 
@@ -1227,6 +1228,64 @@ app.get('/api/evidencias', async (req, res) => {
   }
 });
 
+
+app.get('/api/catalogo-curricular', (req, res) => {
+  res.json([...catalogoCurricular.values()]);
+});
+
+app.post('/api/grupos/:grupoId/modulos/catalogo', async (req, res) => {
+  const grupoId = Number(req.params.grupoId);
+  const modulo = catalogoCurricular.get(req.body?.catalogoId);
+  if (!Number.isSafeInteger(grupoId) || grupoId <= 0) {
+    return res.status(400).json({ error: 'Grupo no válido' });
+  }
+  if (!modulo) {
+    return res.status(404).json({ error: 'Módulo no encontrado en el catálogo' });
+  }
+
+  try {
+    const imparticion = await prisma.$transaction(async (tx) => {
+      // Serializa el alta de esta ficha, incluso si se añade desde grupos distintos.
+      const codigo = `oficial:${modulo.id}`;
+      await tx.$queryRaw`SELECT 1 AS bloqueo FROM pg_advisory_xact_lock(4371, hashtext(${codigo}))`;
+      const grupo = await tx.grupo.findUnique({ where: { id: grupoId } });
+      if (!grupo) return null;
+
+      const curricular = await tx.moduloProfesional.upsert({
+        where: { codigo },
+        update: {},
+        create: {
+          codigo,
+          nombre: modulo.nombre,
+          descripcion: modulo.fuente,
+          resultados: {
+            create: modulo.resultados.map(({ codigo, texto, criterios }) => ({
+              codigo, texto, criterios: { create: criterios },
+            })),
+          },
+        },
+      });
+      const seleccion = { grupoId, moduloId: curricular.id, curso: grupo.curso };
+      const existente = await tx.imparticionModulo.findFirst({ where: seleccion });
+      if (existente) return { ...existente, modulo: curricular };
+
+      const nombreModulo = modulo.id === modulo.codigo
+        ? curricular.nombre
+        : `${curricular.nombre} · ${modulo.ofertas.map(({ ciclo }) => ciclo).join(' / ')}`;
+
+      return tx.imparticionModulo.create({
+        data: { ...seleccion, nombreModulo },
+        include: { modulo: true },
+      });
+    });
+
+    if (!imparticion) return res.status(404).json({ error: 'Grupo no encontrado' });
+    res.json(imparticion);
+  } catch (error) {
+    console.error('Error al añadir módulo del catálogo:', error);
+    res.status(500).json({ error: 'No se pudo añadir el módulo al grupo' });
+  }
+});
 
 app.post(['/api/modulos/importar', '/api/grupos/:grupoId/modulos'], async (req, res) => {
   try {
