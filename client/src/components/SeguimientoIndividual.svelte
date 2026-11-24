@@ -25,7 +25,7 @@
     export let mensajeValoracion = '';
     export let errorValoracion = '';
     export let seleccionarEstudiante;
-    export let cambiarModulo;
+    export let abrirCatalogo;
     export let recuperarConfiguracion;
     export let guardarValoracion;
     export let rubricas = [];
@@ -174,10 +174,7 @@
         cerrarPanel();
         seleccionarEstudiante(event.currentTarget.value);
     }
-    function cambiarImparticion() {
-        cerrarPanel();
-        cambiarModulo();
-    }
+    $: if (imparticionElegida !== undefined) cerrarPanel();
     // Consulta bajo demanda de la trazabilidad de cada valoración.
     let trazabilidades = {};
     let cargandoTrazabilidad = {};
@@ -510,7 +507,7 @@
     {#if grupo}
         <header class="cabecera-seguimiento">
             <div>
-                <h2>Seguimiento del alumnado</h2>
+                <h2>Seguimiento individual</h2>
                 <p>
                     {grupo.nombre} · Curso {grupo.curso} · {estudiantes.length} estudiantes
                 </p>
@@ -539,22 +536,22 @@
 
         <div class="contexto-evaluacion">
             <div class="campo">
-                <label for="imparticion">1. Módulo profesional</label>
+                <label for="estudiante">Alumno</label>
                 <select
-                    id="imparticion"
-                    bind:value={imparticionElegida}
-                    onchange={cambiarImparticion}
+                    id="estudiante"
+                    value={estudianteElegido}
+                    onchange={cambiarEstudiante}
                 >
-                    {#each imparticiones as imparticion (imparticion.id)}
-                        <option value={String(imparticion.id)}
-                            >{imparticion.nombreModulo}</option
+                    {#each estudiantes as estudiante (estudiante.id)}
+                        <option value={String(estudiante.id)}
+                            >{estudiante.codigo} — {estudiante.nombre}</option
                         >
                     {/each}
                 </select>
             </div>
             <div class="campo">
                 <label for="configuracion-evaluacion"
-                    >2. Configuración de seguimiento</label
+                    >Configuración de seguimiento</label
                 >
                 <select
                     id="configuracion-evaluacion"
@@ -572,25 +569,13 @@
                     {/each}
                 </select>
                 {#if imparticionElegida && configuraciones.length === 0}
-                    <small
-                        >No hay configuraciones asociadas a este módulo.</small
-                    >
+                    <small>Elige qué indicadores quieres observar en este módulo.</small>
+                    <button type="button" class="secundario" onclick={abrirCatalogo}>
+                        Configurar indicadores
+                    </button>
                 {/if}
             </div>
-            <div class="campo">
-                <label for="estudiante">3. Estudiante</label>
-                <select
-                    id="estudiante"
-                    value={estudianteElegido}
-                    onchange={cambiarEstudiante}
-                >
-                    {#each estudiantes as estudiante (estudiante.id)}
-                        <option value={String(estudiante.id)}
-                            >{estudiante.codigo} — {estudiante.nombre}</option
-                        >
-                    {/each}
-                </select>
-            </div>
+
         </div>
 
         <div class="columnas-seguimiento">

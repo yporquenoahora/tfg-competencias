@@ -204,6 +204,15 @@ La aplicación frontend estará disponible normalmente en:
 
 `http://localhost:5173`
 
+## Recorrido por la aplicación
+
+- **Alumno** permite seleccionar a un estudiante, revisar su historial y registrar observaciones en el módulo activo.
+- **Grupo** muestra el seguimiento agregado del módulo y ofrece acceso a las fichas individuales.
+- El selector **Módulo activo** de la cabecera cambia el contexto en todas las vistas. **Catálogo** permite guardar una selección de indicadores para ese módulo.
+- Para incorporar un módulo nuevo al grupo actual, abre **Módulos** o pulsa **Añadir módulo**. Completa el código, el nombre y al menos un resultado de aprendizaje con un criterio de evaluación. Al guardar, la aplicación activa el módulo y abre **Catálogo** para configurar sus indicadores.
+
+El alta desde la interfaz registra el currículo y la impartición en una misma operación. Para asociar un indicador concreto a un criterio curricular, se utiliza la API `POST /api/indicadores/:id/criterios` con `criterioId`.
+
 ## API REST inicial
 
 Actualmente se dispone de los siguientes endpoints:

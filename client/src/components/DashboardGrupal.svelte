@@ -11,7 +11,7 @@
   ];
 </script>
 <section class="panel dashboard">
-  <div class="cabecera"><div><h2>Dashboard de seguimiento grupal</h2><p>Señales para la revisión docente de competencias transversales.</p></div><button class="secundario" onclick={actualizar} disabled={cargando}>Actualizar datos</button></div>
+  <div class="cabecera"><div><h2>Seguimiento del grupo</h2></div><button class="secundario" onclick={actualizar} disabled={cargando}>Actualizar datos</button></div>
   {#if cargando}<p>Calculando indicadores...</p>
   {:else if error}<p class="error" role="alert">{error}</p>
   {:else if seguimiento}

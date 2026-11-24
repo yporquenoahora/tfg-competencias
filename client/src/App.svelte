@@ -4,6 +4,7 @@
   import Catalogo from './components/Catalogo.svelte';
   import DashboardGrupal from './components/DashboardGrupal.svelte';
   import SeguimientoIndividual from './components/SeguimientoIndividual.svelte';
+  import ImportarModulo from './components/ImportarModulo.svelte';
   import ImportarEstudiantes from './components/ImportarEstudiantes.svelte';
   import {
     crearPlanRefuerzo,
@@ -21,7 +22,14 @@
   let rubricas = [];
   let errorRubricas = '';
   let evidenciaIdSeleccionada = '';
-  let catalogo;
+  let mensajeModulo = '';
+  const vistas = [
+    { id: 'evaluacion', nombre: 'Alumno', detalle: 'Consulta su evolución, registra observaciones y prepara refuerzos.' },
+    { id: 'grupo', nombre: 'Grupo', detalle: 'Consulta las dificultades observadas en el grupo y abre el seguimiento de cada alumno.' },
+    { id: 'catalogo', nombre: 'Catálogo', detalle: 'Elige los indicadores que quieres observar en el módulo activo.' },
+    { id: 'modulos', nombre: 'Módulos', detalle: 'Incorpora un módulo y sus referentes curriculares al grupo actual.' },
+  ];
+  $: vista = vistas.find((opcion) => opcion.id === vistaActiva);
   let competencias = [],
     configuraciones = [],
     grupo = null,
@@ -125,6 +133,11 @@
       body: JSON.stringify(datos),
     });
     configuraciones = await api('/configuraciones');
+    if (String(datos.imparticionId) === imparticionElegida) {
+      configuracionEvaluacion = String(nueva.id);
+      recuperarConfiguracion();
+      mensajeModulo = '';
+    }
     return nueva;
   }
 
@@ -138,10 +151,8 @@
       imparticionElegida = imparticiones.length
         ? String(imparticiones[0].id)
         : '';
-      await Promise.all([
-        seleccionarEstudiante(estudiantes[0]?.id ?? ''),
-        cargarSeguimiento(),
-      ]);
+      void seleccionarEstudiante(estudiantes[0]?.id ?? '');
+      void cargarSeguimiento();
     } catch (error) {
       errorGrupo = error.message;
     } finally {
@@ -227,6 +238,31 @@
     } finally {
       if (actual === solicitudSeguimiento) cargandoSeguimiento = false;
     }
+  }
+
+  function seleccionarModulo(id) {
+    if (id === imparticionElegida) return;
+    imparticionElegida = id;
+    seleccionados = [];
+    mensajeModulo = '';
+    cambiarModulo();
+  }
+
+  async function importarModulo(datos) {
+    const modulo = await api(`/grupos/${grupo.id}/modulos`, {
+      method: 'POST',
+      body: JSON.stringify(datos),
+    });
+
+    const imparticion = modulo.imparticiones?.[0];
+    if (!imparticion) {
+      throw new Error('El servidor ha importado el currículo, pero no ha creado la impartición para este grupo.');
+    }
+
+    imparticiones = [...imparticiones, { ...imparticion, modulo }];
+    seleccionarModulo(String(imparticion.id));
+    mensajeModulo = `${modulo.nombre} se ha añadido al grupo. Selecciona al menos un indicador y guarda su configuración.`;
+    vistaActiva = 'catalogo';
   }
 
   function cambiarModulo() {
@@ -330,30 +366,63 @@
         <strong>Competencias FP</strong>
         <small>Panel de seguimiento docente</small>
       </div>
-      <button
-        class:activo={vistaActiva === 'evaluacion'}
-        onclick={() => (vistaActiva = 'evaluacion')}
-        aria-current={vistaActiva === 'evaluacion' ? 'page' : undefined}
-        >Evaluación</button
-      >
-      <button
-        class:activo={vistaActiva === 'grupo'}
-        onclick={() => (vistaActiva = 'grupo')}
-        aria-current={vistaActiva === 'grupo' ? 'page' : undefined}
-        >Grupo</button
-      >
-      <button
-        class:activo={vistaActiva === 'catalogo'}
-        onclick={() => (vistaActiva = 'catalogo')}
-        aria-current={vistaActiva === 'catalogo' ? 'page' : undefined}
-        >Catálogo</button
-      >
+      {#each vistas as opcion (opcion.id)}
+        <button
+          class:activo={vistaActiva === opcion.id}
+          onclick={() => (vistaActiva = opcion.id)}
+          aria-current={vistaActiva === opcion.id ? 'page' : undefined}
+        >{opcion.nombre}</button>
+      {/each}
     </nav>
 
     <div class="contenido-panel">
+      <header class="contexto-app">
+        <div class="contexto-titulo">
+          <h1>{vista.nombre}</h1>
+          <p>{vista.detalle}</p>
+        </div>
+        <div class="contexto-controles">
+          <div class="contexto-grupo">
+            <span>Grupo actual</span>
+            <strong>{grupo ? `${grupo.nombre} · ${grupo.curso}` : '—'}</strong>
+          </div>
+          <div class="contexto-modulo">
+            <label for="modulo-activo">Módulo activo</label>
+            <select
+              id="modulo-activo"
+              value={imparticionElegida}
+              disabled={!imparticiones.length}
+              onchange={(evento) => seleccionarModulo(evento.currentTarget.value)}
+            >
+              {#if !imparticiones.length}
+                <option value="">{cargandoGrupo ? 'Cargando módulos…' : 'Sin módulos disponibles'}</option>
+              {/if}
+              {#each imparticiones as imparticion (imparticion.id)}
+                <option value={String(imparticion.id)}>{imparticion.nombreModulo}</option>
+              {/each}
+            </select>
+          </div>
+          {#if vistaActiva !== 'modulos'}
+            <button class="secundario" onclick={() => (vistaActiva = 'modulos')}>Añadir módulo</button>
+          {/if}
+        </div>
+      </header>
+
+      {#if errorGrupo && vistaActiva !== 'evaluacion'}
+        <p class="error" role="alert">No se pudo cargar el grupo. {errorGrupo}</p>
+        <button class="secundario" onclick={cargarGrupo}>Reintentar</button>
+      {/if}
+
+      {#if vistaActiva === 'catalogo' && mensajeModulo}
+        <p class="exito" role="status">{mensajeModulo}</p>
+      {/if}
+
+      {#if vistaActiva === 'modulos'}
+        <ImportarModulo {grupo} guardar={importarModulo} />
+      {/if}
+
       <div hidden={vistaActiva !== 'catalogo'}>
         <Catalogo
-          bind:this={catalogo}
           {competencias}
           {configuraciones}
           bind:seleccionados
@@ -361,12 +430,12 @@
           error={errorCatalogo}
           onGuardar={guardarConfiguracion}
           {imparticiones}
-          bind:imparticionElegida
+          {imparticionElegida}
         />
       </div>
 
       {#if vistaActiva === 'evaluacion'}
-        <section class="panel" id="seguimiento-individual">
+        <section class="panel">
           {#if cargandoGrupo}
             <section class="panel"><p>Cargando estudiantes...</p></section>
           {:else if errorGrupo}
@@ -382,7 +451,7 @@
               configuraciones={configuracionesDelModulo}
               {evaluables}
               bind:estudianteElegido
-              bind:imparticionElegida
+              {imparticionElegida}
               bind:configuracionEvaluacion
               bind:indicadorValoracion
               bind:nivelValoracion
@@ -398,12 +467,12 @@
               {mensajeValoracion}
               {errorValoracion}
               {seleccionarEstudiante}
-              {cambiarModulo}
               {recuperarConfiguracion}
               {guardarValoracion}
               {guardarPlan}
               {rubricas}
               {errorRubricas}
+              abrirCatalogo={() => (vistaActiva = 'catalogo')}
             />
           {/if}
         </section>

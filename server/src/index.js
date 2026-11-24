@@ -1228,9 +1228,10 @@ app.get('/api/evidencias', async (req, res) => {
 });
 
 
-app.post('/api/modulos/importar', async (req, res) => {
+app.post(['/api/modulos/importar', '/api/grupos/:grupoId/modulos'], async (req, res) => {
   try {
     const { codigo, nombre, descripcion, resultados } = req.body ?? {};
+    const grupoId = req.params.grupoId === undefined ? undefined : Number(req.params.grupoId);
 
     if (
       typeof codigo !== 'string' || !codigo.trim() ||
@@ -1244,11 +1245,11 @@ app.post('/api/modulos/importar', async (req, res) => {
 
     if (
       resultados.some(ra =>
-        typeof ra.codigo !== 'string' || !ra.codigo.trim() ||
+        !ra || typeof ra.codigo !== 'string' || !ra.codigo.trim() ||
         typeof ra.texto !== 'string' || !ra.texto.trim() ||
         !Array.isArray(ra.criterios) ||
         ra.criterios.some(ce =>
-          typeof ce.codigo !== 'string' || !ce.codigo.trim() ||
+          !ce || typeof ce.codigo !== 'string' || !ce.codigo.trim() ||
           typeof ce.texto !== 'string' || !ce.texto.trim()
         ) ||
         new Set(ra.criterios.map(ce => ce.codigo.trim())).size !== ra.criterios.length
@@ -1258,6 +1259,18 @@ app.post('/api/modulos/importar', async (req, res) => {
       return res.status(400).json({
         error: 'Estructura curricular inválida o códigos duplicados'
       });
+    }
+
+    let grupo = null;
+    if (grupoId !== undefined) {
+      if (!Number.isSafeInteger(grupoId) || grupoId <= 0) {
+        return res.status(400).json({ error: 'Grupo no válido' });
+      }
+
+      grupo = await prisma.grupo.findUnique({ where: { id: grupoId } });
+      if (!grupo) {
+        return res.status(404).json({ error: 'Grupo no encontrado' });
+      }
     }
 
     const existe = await prisma.moduloProfesional.findUnique({
@@ -1277,6 +1290,15 @@ app.post('/api/modulos/importar', async (req, res) => {
         descripcion: typeof descripcion === 'string'
           ? descripcion.trim() || null
           : null,
+        ...(grupo && {
+          imparticiones: {
+            create: {
+              nombreModulo: nombre.trim(),
+              curso: grupo.curso,
+              grupo: { connect: { id: grupo.id } }
+            }
+          }
+        }),
         resultados: {
           create: resultados.map(ra => ({
             codigo: ra.codigo.trim(),
@@ -1291,6 +1313,7 @@ app.post('/api/modulos/importar', async (req, res) => {
         }
       },
       include: {
+        ...(grupo && { imparticiones: true }),
         resultados: {
           include: { criterios: true }
         }
@@ -1299,6 +1322,9 @@ app.post('/api/modulos/importar', async (req, res) => {
 
     return res.status(201).json(modulo);
   } catch (error) {
+    if (error.code === 'P2002') {
+      return res.status(409).json({ error: 'Ya existe un módulo con ese código' });
+    }
     console.error('Error al importar módulo:', error);
     return res.status(500).json({
       error: 'No se pudo importar el módulo'

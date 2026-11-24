@@ -29,6 +29,16 @@
   $: configuracionesDelModulo = configuraciones.filter(
     (c) => Number(c.imparticionId) === Number(imparticionElegida),
   );
+  $: if (imparticionElegida !== undefined) restablecerFormulario();
+
+  function restablecerFormulario() {
+    configuracionElegida = '';
+    nombre = '';
+    descripcion = '';
+    mensaje = '';
+    errorLocal = '';
+  }
+
   function cambiarIndicador(id) {
     seleccionados = seleccionados.includes(id)
       ? seleccionados.filter((x) => x !== id)
@@ -188,27 +198,9 @@
 <section class="panel">
   <h2>Guardar y recuperar configuraciones</h2>
 
-  <div class="formulario">
-    <label for="modulo-catalogo">Módulo profesional</label>
-
-    <select id="modulo-catalogo" bind:value={imparticionElegida}>
-      <option value="">Selecciona un módulo</option>
-
-      {#each imparticiones as imparticion (imparticion.id)}
-        <option value={String(imparticion.id)}>
-          {imparticion.nombreModulo}
-        </option>
-      {/each}
-    </select>
-
-    {#if moduloActual}
-      <p>
-        La configuración se asociará a:
-        <strong>{moduloActual.nombreModulo}</strong>
-        ({moduloActual.curso}).
-      </p>
-    {/if}
-  </div>
+  {#if moduloActual}
+    <p>La configuración se asociará a <strong>{moduloActual.nombreModulo}</strong>.</p>
+  {/if}
 
   <div class="formulario">
     <label for="nombre-config">Nombre de configuración</label><input
@@ -220,7 +212,7 @@
       rows="3"
       bind:value={descripcion}></textarea><button
       onclick={guardar}
-      disabled={guardando}
+      disabled={guardando || !moduloActual}
       >{guardando ? 'Guardando...' : 'Guardar nueva configuración'}</button
     >
   </div>
