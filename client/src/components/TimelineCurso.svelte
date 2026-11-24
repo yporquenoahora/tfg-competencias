@@ -1,4 +1,5 @@
 <script>
+  import ComparativaCurso from './ComparativaCurso.svelte';
   import GraficoCurso from './GraficoCurso.svelte';
   import { api } from '../lib/api.js';
   export let cursos = [];
@@ -145,14 +146,6 @@
           {#each cursos as item (item)}<option value={item}>{item}</option>{/each}
         </select>
       </label>
-      <label>Quincena
-        <select value={quincena} onchange={(e) => (quincena = e.currentTarget.value)}>
-          <option value="">Todo el curso</option>
-          {#each periodos as periodo (periodo.indice)}
-            <option value={String(periodo.indice)}>{periodo.etiqueta}</option>
-          {/each}
-        </select>
-      </label>
     </div>
   {/if}
 
@@ -194,7 +187,11 @@
     {#if errorHito}<p class="error" role="alert">{errorHito}</p>{/if}
     {#if avisoHito}<p class="exito" role="status">{avisoHito}</p>{/if}
 
-    <GraficoCurso filas={filasVisibles} periodos={visibles} {abrir} />
+    <ComparativaCurso filas={filasVisibles} {periodos} {quincena} seleccionar={(valor) => (quincena = valor)} {abrir} />
+    <details>
+      <summary>Ver perfiles y evolución de un grupo</summary>
+      <GraficoCurso filas={filasVisibles} periodos={visibles} {abrir} />
+    </details>
     <details>
       <summary>Ver tabla comparativa de todos los grupos</summary>
     <p>Cada celda muestra alumnado con alguna dificultad sobre alumnado observado. Pulsa una quincena de un grupo para revisar el detalle.</p>
