@@ -1,4 +1,4 @@
-import { compararQuincenas, intervalo, resumirIndicadores } from './periodos.js';
+import { agruparPerfiles, compararQuincenas, intervalo, resumirIndicadores } from './periodos.js';
 
 import express from 'express';
 import cors from 'cors';
@@ -327,6 +327,57 @@ app.get('/api/grupos/:grupoId/estudiantes', async (req, res) => {
   }
 });
 
+async function descriptorValoracion(db, indicadorId, nivel) {
+  const asociacion = await db.rubricaIndicador.findFirst({
+    where: { indicadorId },
+    include: { rubrica: { include: { niveles: true } } },
+    orderBy: { id: 'asc' },
+  });
+  const rubrica = asociacion?.rubrica;
+  return {
+    rubricaId: rubrica?.id ?? null,
+    descriptorAplicado: rubrica?.niveles.find((item) => item.valor === nivel)?.descripcion ?? null,
+  };
+}
+
+app.post('/api/valoraciones/bloque', async (req, res) => {
+  const { estudianteIds, imparticionId, indicadorId, nivel, observacion = '' } = req.body ?? {};
+  if (!Array.isArray(estudianteIds) || !estudianteIds.length || estudianteIds.length > 500 ||
+      ![...estudianteIds, imparticionId, indicadorId].every((id) => Number.isSafeInteger(id) && id > 0) ||
+      !Number.isInteger(nivel) || nivel < 1 || nivel > 4 || typeof observacion !== 'string') {
+    return res.status(400).json({ error: 'Selecciona alumnos, indicador y un nivel entre 1 y 4' });
+  }
+
+  const ids = [...new Set(estudianteIds)];
+  try {
+    const resultado = await prisma.$transaction(async (tx) => {
+      const imparticion = await tx.imparticionModulo.findUnique({ where: { id: imparticionId } });
+      if (!imparticion) return null;
+      const seleccion = await tx.indicadorSeleccionado.findFirst({
+        where: { indicadorId, configuracion: { imparticionId } },
+      });
+      if (!seleccion) return null;
+      const matriculas = await tx.matricula.count({
+        where: { grupoId: imparticion.grupoId, estudianteId: { in: ids } },
+      });
+      if (matriculas !== ids.length) return null;
+      const descriptor = await descriptorValoracion(tx, indicadorId, nivel);
+      const fecha = new Date();
+      return tx.valoracion.createMany({ data: ids.map((estudianteId) => ({
+        estudianteId, imparticionId, indicadorId, nivel, fecha,
+        observacion: observacion.trim() || null, ...descriptor,
+      })) });
+    });
+    if (!resultado) {
+      return res.status(400).json({ error: 'Comprueba que todos los alumnos y el indicador pertenecen a la impartición' });
+    }
+    return res.status(201).json({ total: resultado.count });
+  } catch (error) {
+    console.error('Error al registrar valoraciones en bloque:', error);
+    return res.status(500).json({ error: 'No se pudo guardar el bloque de valoraciones' });
+  }
+});
+
 app.post('/api/valoraciones', async (req, res) => {
   try {
     const {
@@ -426,31 +477,7 @@ app.post('/api/valoraciones', async (req, res) => {
       }
     }
 
-    // Buscar la rúbrica asociada al indicador
-    const asociacionRubrica = await prisma.rubricaIndicador.findFirst({
-      where: {
-        indicadorId
-      },
-      include: {
-        rubrica: {
-          include: {
-            niveles: true
-          }
-        }
-      }
-    });
-
-    // Obtener la rúbrica aplicable
-    const rubrica = asociacionRubrica?.rubrica ?? null;
-
-    // Obtener el descriptor correspondiente al nivel observado
-    const nivelRubrica = rubrica?.niveles.find(
-      item => item.valor === nivel
-    );
-
-    // Guardar la referencia y el descriptor utilizados
-    const rubricaId = rubrica?.id ?? null;
-    const descriptorAplicado = nivelRubrica?.descripcion ?? null;
+    const { rubricaId, descriptorAplicado } = await descriptorValoracion(prisma, indicadorId, nivel);
     const valoracion = await prisma.valoracion.create({
       data: {
         estudianteId,
@@ -822,7 +849,8 @@ app.get('/api/imparticiones/:id/seguimiento', async (req, res) => {
         indicadoresConDificultades: indicadoresPrioritarios.size
       },
 
-      porIndicador,
+      perfiles: agruparPerfiles(estudiantes, porIndicador),
+      porIndicador: porIndicador.map(({ alumnosObservados, ...fila }) => fila),
       sinObservaciones: estudiantes.filter((item) => !estudiantesObservados.has(item.id))
         .map(({ id, nombre }) => ({ id, nombre })),
       refuerzos: refuerzos.map((p) => ({

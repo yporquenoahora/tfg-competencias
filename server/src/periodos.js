@@ -27,10 +27,11 @@ export function resumirIndicadores(valoraciones) {
     pares.add(clave);
     const fila = indicadores.get(valoracion.indicadorId) ?? {
       id: valoracion.indicadorId, nombre: valoracion.indicador.descripcion,
-      observados: 0, dificultad: [],
+      observados: 0, dificultad: [], alumnosObservados: [],
     };
     indicadores.set(fila.id, fila);
     fila.observados++;
+    fila.alumnosObservados.push(valoracion.estudianteId);
     if (valoracion.nivel <= 2) {
       fila.dificultad.push({ id: valoracion.estudianteId, nombre: valoracion.estudiante.nombre });
     }
@@ -53,4 +54,23 @@ export function compararQuincenas(actual, anterior) {
     grupos[balance > 0 ? 'mejora' : balance < 0 ? 'retroceso' : 'estable']++;
   }
   return { ...grupos, comparables: alumnado.size };
+}
+
+export function agruparPerfiles(estudiantes, porIndicador) {
+  const perfiles = new Map(estudiantes.map((e) => [e.id, { observados: 0, dificultades: [] }]));
+  for (const indicador of porIndicador) {
+    for (const id of indicador.alumnosObservados) perfiles.get(id).observados++;
+    for (const { id } of indicador.dificultad) perfiles.get(id).dificultades.push(indicador.id);
+  }
+  const grupos = new Map();
+  for (const { id, nombre } of estudiantes) {
+    const { observados, dificultades } = perfiles.get(id);
+    dificultades.sort((a, b) => a - b);
+    const clave = !observados ? 'sin-evidencia' : dificultades.join(',') || 'sin-dificultad';
+    if (!grupos.has(clave)) grupos.set(clave, {
+      clave, indicadores: dificultades.map((id) => porIndicador.find((fila) => fila.id === id).nombre), alumnos: [],
+    });
+    grupos.get(clave).alumnos.push({ id, nombre, observados });
+  }
+  return [...grupos.values()].sort((a, b) => b.alumnos.length - a.alumnos.length);
 }

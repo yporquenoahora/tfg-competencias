@@ -3,6 +3,7 @@
   import { api } from './lib/api.js';
   import Catalogo from './components/Catalogo.svelte';
   import TimelineCurso from './components/TimelineCurso.svelte';
+  import PerfilesGrupo from './components/PerfilesGrupo.svelte';
   import DashboardGrupal from './components/DashboardGrupal.svelte';
   import SeguimientoIndividual from './components/SeguimientoIndividual.svelte';
   import ImportarModulo from './components/ImportarModulo.svelte';
@@ -74,6 +75,9 @@
       Number(c.imparticionId) === Number(imparticionElegida) &&
       Boolean(imparticionElegida),
   );
+  $: idsIndicadoresGrupo = new Set(configuracionesDelModulo
+    .flatMap((configuracion) => (configuracion.indicadores ?? []).map((item) => Number(item.indicadorId))));
+  $: indicadoresGrupo = competencias.flatMap(indicadoresDe).filter((item) => idsIndicadoresGrupo.has(Number(item.id)));
   $: configuracionActiva = configuracionesDelModulo.find(
     (c) => String(c.id) === String(configuracionEvaluacion),
   );
@@ -615,6 +619,16 @@
             vistaActiva = 'evaluacion';
           }}
         />
+
+        {#if imparticionElegida}
+          {#key imparticionElegida}
+            <PerfilesGrupo perfiles={seguimiento?.perfiles ?? []} {estudiantes}
+              imparticionId={imparticionElegida} indicadores={indicadoresGrupo}
+              actualizado={async () => {
+                await Promise.all([cargarSeguimiento(), seleccionarEstudiante(estudianteElegido)]);
+              }} />
+          {/key}
+        {/if}
 
         {#if grupo}
           {#key grupo.id}
