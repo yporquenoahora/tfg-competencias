@@ -517,6 +517,60 @@ app.get('/api/estudiantes/:id/valoraciones', async (req, res) => {
   }
 });
 
+function datosHito(body) {
+  const { fecha, titulo, nota = '' } = body ?? {};
+  const { inicio } = intervalo(fecha);
+  if (!inicio || typeof titulo !== 'string' || !titulo.trim() ||
+      titulo.trim().length > 120 || typeof nota !== 'string' || nota.trim().length > 500) {
+    throw new RangeError('Indica una fecha y un título de hasta 120 caracteres. La nota admite 500.');
+  }
+  return { fecha: inicio, titulo: titulo.trim(), nota: nota.trim() };
+}
+
+app.post('/api/imparticiones/:id/hitos', async (req, res) => {
+  const imparticionId = Number(req.params.id);
+  if (!Number.isSafeInteger(imparticionId) || imparticionId < 1) {
+    return res.status(400).json({ error: 'Impartición no válida' });
+  }
+  try {
+    const datos = datosHito(req.body);
+    const imparticion = await prisma.imparticionModulo.findUnique({
+      where: { id: imparticionId }, select: { curso: true },
+    });
+    if (!imparticion) return res.status(404).json({ error: 'Impartición no encontrada' });
+    const [primero, segundo] = imparticion.curso.split('/');
+    const dia = datos.fecha.toISOString().slice(0, 10);
+    if (dia < `${primero}-09-01` || dia >= `${segundo}-07-01`) {
+      return res.status(400).json({ error: 'Elige una fecha de septiembre a junio del curso seleccionado' });
+    }
+    const hito = await prisma.hitoRevision.create({ data: { ...datos, imparticionId } });
+    res.status(201).json(hito);
+  } catch (error) {
+    if (error instanceof RangeError) return res.status(400).json({ error: error.message });
+    console.error('Error al guardar hito:', error);
+    res.status(500).json({ error: 'No se pudo guardar el hito' });
+  }
+});
+
+app.patch('/api/imparticiones/:id/hitos/:hitoId', async (req, res) => {
+  const imparticionId = Number(req.params.id);
+  const id = Number(req.params.hitoId);
+  const { revisado } = req.body ?? {};
+  if (![id, imparticionId].every((n) => Number.isSafeInteger(n) && n > 0) || typeof revisado !== 'boolean') {
+    return res.status(400).json({ error: 'Hito o estado no válido' });
+  }
+  try {
+    const hito = await prisma.hitoRevision.updateMany({
+      where: { id, imparticionId }, data: { revisado },
+    });
+    if (!hito.count) return res.status(404).json({ error: 'Hito no encontrado' });
+    res.json({ id, revisado });
+  } catch (error) {
+    console.error('Error al actualizar hito:', error);
+    res.status(500).json({ error: 'No se pudo actualizar el hito' });
+  }
+});
+
 app.get('/api/curso/seguimiento', async (req, res) => {
   const { curso } = req.query;
   if (typeof curso !== 'string' || !/^\d{4}\/\d{4}$/.test(curso)) {
@@ -534,6 +588,10 @@ app.get('/api/curso/seguimiento', async (req, res) => {
       include: {
         modulo: { select: { codigo: true } },
         grupo: { include: { matriculas: { select: { estudianteId: true } } } },
+        hitosRevision: {
+          where: { fecha: { gte: inicio, lt: fin } },
+          orderBy: [{ fecha: 'asc' }, { id: 'asc' }],
+        },
         valoraciones: {
           where: { fecha: { gte: inicio, lt: fin } },
           select: { estudianteId: true, indicadorId: true, fecha: true, nivel: true },
@@ -563,6 +621,10 @@ app.get('/api/curso/seguimiento', async (req, res) => {
       return {
         id: i.id, grupoId: i.grupoId, grupo: i.grupo.nombre, modulo: i.nombreModulo,
         total: matriculados.size,
+        hitos: i.hitosRevision.map((hito) => ({
+          ...hito, fecha: hito.fecha.toISOString().slice(0, 10),
+          quincena: Math.floor((hito.fecha - inicio) / (14 * 86400000)),
+        })),
         ventanas: [...ventanas].map(([indice, v]) => ({
           indice, observados: v.observados.size, dificultad: v.dificultad.size,
         })),

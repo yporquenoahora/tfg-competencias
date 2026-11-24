@@ -225,6 +225,8 @@ Con la base configurada y las migraciones aplicadas, ejecuta `node scripts/prepa
 3. Vuelve a **Curso** y pulsa **Ver evolución tras el refuerzo**. En la segunda quincena quedan 3 de 19 con dificultades. En el detalle, abre un alumno con refuerzo y registra si queda pendiente, en progreso o revisado. El panel muestra el estado actual del plan.
 4. En **Alumno**, amplía el intervalo de informe a `01/09/2026–30/09/2026` y genera el documento imprimible para ver ambas observaciones. **Reiniciar vista** limpia los filtros de la línea temporal y mantiene los datos registrados.
 
+Desde **Curso → Añadir hito de revisión**, elige el grupo y el módulo, una fecha entre septiembre y junio y qué revisar. Por ejemplo, programa «Validación XML antes de la entrega» con una nota sobre los errores que interesa observar. La línea temporal cuenta los hitos pendientes incluso en quincenas sin valoraciones. **Abrir seguimiento** lleva a la quincena del hito y **Marcar revisado** registra que el docente ha hecho la comprobación.
+
 ### Trazabilidad curricular y programación didáctica
 
 El currículo se almacena como **módulo → resultado de aprendizaje → criterio de evaluación**. Cada CE pertenece a un RA. La tabla `IndicadorCriterio` relaciona indicadores de seguimiento con CE y las vistas filtran las asociaciones por el currículo de la impartición activa. Los vínculos se dan de alta mediante `POST /api/indicadores/:id/criterios` o se preparan en la carga sintética. Son asociaciones pedagógicas orientativas.

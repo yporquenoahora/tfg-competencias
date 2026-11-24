@@ -141,6 +141,20 @@ model ImparticionModulo {
 
   modulo          ModuloProfesional?         @relation(fields: [moduloId], references: [id], onDelete: Restrict)
   configuraciones ConfiguracionSeguimiento[]
+  hitosRevision HitoRevision[]
+}
+
+model HitoRevision {
+  id            Int      @id @default(autoincrement())
+  imparticionId Int
+  fecha         DateTime @db.Date
+  titulo        String
+  nota          String   @default("")
+  revisado      Boolean  @default(false)
+
+  imparticion ImparticionModulo @relation(fields: [imparticionId], references: [id], onDelete: Restrict)
+
+  @@index([imparticionId, fecha])
 }
 
 model Valoracion {
