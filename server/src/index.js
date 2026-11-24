@@ -1777,6 +1777,61 @@ app.get('/api/indicadores/:id/criterios', async (req, res) => {
 });
 
 
+app.post('/api/grupos/:grupoId/estudiantes/trasladar', async (req, res) => {
+  const origen = Number(req.params.grupoId);
+  const { destino, estudianteIds } = req.body ?? {};
+  const idValido = (id) => Number.isSafeInteger(id) && id > 0;
+  if (!idValido(origen) || !idValido(destino) || origen === destino ||
+      !Array.isArray(estudianteIds) || !estudianteIds.length ||
+      estudianteIds.length > 500 || !estudianteIds.every(idValido)) {
+    return res.status(400).json({ error: 'Selecciona alumnado y un grupo de destino distinto' });
+  }
+  const ids = [...new Set(estudianteIds)];
+  try {
+    const resultado = await prisma.$transaction(async (tx) => {
+      const grupos = await tx.grupo.findMany({ where: { id: { in: [origen, destino] } } });
+      if (grupos.length !== 2 || grupos[0].curso !== grupos[1].curso) {
+        return { error: 'Los grupos deben existir y pertenecer al mismo curso académico' };
+      }
+      const matriculas = await tx.matricula.findMany({
+        where: { grupoId: { in: [origen, destino] }, estudianteId: { in: ids } },
+        include: { estudiante: { select: { nombre: true, codigo: true } } },
+      });
+      const actuales = matriculas.filter((m) => m.grupoId === origen);
+      if (actuales.length !== ids.length) return { error: 'La matrícula ha cambiado. Actualiza el grupo y vuelve a seleccionar.' };
+      const filtro = { estudianteId: { in: ids }, imparticion: { grupoId: origen } };
+      const [valoraciones, planes, evidencias] = await Promise.all([
+        tx.valoracion.findMany({ where: filtro, distinct: ['estudianteId'], select: { estudianteId: true } }),
+        tx.planRefuerzo.findMany({ where: filtro, distinct: ['estudianteId'], select: { estudianteId: true } }),
+        tx.evidencia.findMany({
+          where: { estudianteId: filtro.estudianteId, actividad: { imparticion: { grupoId: origen } } },
+          distinct: ['estudianteId'], select: { estudianteId: true },
+        }),
+      ]);
+      const historial = new Set([...valoraciones, ...planes, ...evidencias].map((fila) => fila.estudianteId));
+      if (historial.size) {
+        const nombres = actuales.filter((m) => historial.has(m.estudianteId))
+          .map((m) => `${m.estudiante.nombre} (${m.estudiante.codigo})`);
+        return { error: `Estos alumnos tienen seguimiento en el origen: ${nombres.join(', ')}. Retíralos de la selección para mover el resto.` };
+      }
+      const yaEnDestino = new Set(matriculas.filter((m) => m.grupoId === destino).map((m) => m.estudianteId));
+      const duplicadas = actuales.filter((m) => yaEnDestino.has(m.estudianteId)).map((m) => m.id);
+      const paraMover = actuales.filter((m) => !yaEnDestino.has(m.estudianteId)).map((m) => m.id);
+      if (paraMover.length) await tx.matricula.updateMany({ where: { id: { in: paraMover } }, data: { grupoId: destino } });
+      if (duplicadas.length) await tx.matricula.deleteMany({ where: { id: { in: duplicadas } } });
+      return { total: ids.length, nuevasEnDestino: paraMover.length, yaEnDestino: duplicadas.length };
+    }, { isolationLevel: 'Serializable' });
+    if (resultado.error) return res.status(409).json(resultado);
+    res.json(resultado);
+  } catch (error) {
+    if (['P2002', 'P2034'].includes(error.code)) {
+      return res.status(409).json({ error: 'Las matrículas cambiaron durante el traslado. Actualiza y vuelve a intentarlo.' });
+    }
+    console.error('Error al trasladar matrículas:', error);
+    res.status(500).json({ error: 'No se pudo trasladar la selección' });
+  }
+});
+
 app.post('/api/grupos/:grupoId/estudiantes/importar', async (req, res) => {
   try {
     const grupoId = Number(req.params.grupoId);
@@ -1835,6 +1890,7 @@ app.post('/api/grupos/:grupoId/estudiantes/importar', async (req, res) => {
         return null;
       }
 
+      const nuevasMatriculas = [];
       let creados = 0;
       let existentes = 0;
       let matriculados = 0;
@@ -1870,6 +1926,7 @@ app.post('/api/grupos/:grupoId/estudiantes/importar', async (req, res) => {
               grupoId
             }
           });
+          nuevasMatriculas.push(estudiante.id);
           matriculados++;
         }
       }
@@ -1880,7 +1937,8 @@ app.post('/api/grupos/:grupoId/estudiantes/importar', async (req, res) => {
         creados,
         existentes,
         matriculados,
-        yaMatriculados
+        yaMatriculados,
+        nuevasMatriculas
       };
     });
 

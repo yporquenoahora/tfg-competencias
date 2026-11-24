@@ -3,6 +3,7 @@
   import { api } from './lib/api.js';
   import Catalogo from './components/Catalogo.svelte';
   import TimelineCurso from './components/TimelineCurso.svelte';
+  import AsientosGrupo from './components/AsientosGrupo.svelte';
   import PerfilesGrupo from './components/PerfilesGrupo.svelte';
   import DashboardGrupal from './components/DashboardGrupal.svelte';
   import SeguimientoIndividual from './components/SeguimientoIndividual.svelte';
@@ -162,6 +163,7 @@
   }
 
   let grupos = [];
+  let ultimoLote = [];
   let grupoElegido = '';
   let creandoGrupo = false;
   let nombreGrupo = '';
@@ -175,6 +177,7 @@
     cargandoGrupo = true;
     errorGrupo = '';
     grupo = null;
+    ultimoLote = [];
     estudiantes = [];
     imparticiones = [];
     seleccionarModulo('');
@@ -609,6 +612,12 @@
           <button>Revisar periodo</button>
           <button class="secundario" type="button" onclick={() => { desde = ''; hasta = ''; cargarSeguimiento(); }}>Todo el curso</button>
         </form>
+        {#if grupo}
+          {#key grupo.id}
+            <AsientosGrupo {grupo} {grupos} {estudiantes} {ultimoLote} actualizar={actualizarEstudiantes}
+              abrir={(id) => { seleccionarEstudiante(id); vistaActiva = 'evaluacion'; }} />
+          {/key}
+        {/if}
         <DashboardGrupal
           {seguimiento}
           cargando={cargandoSeguimiento}
@@ -632,7 +641,10 @@
 
         {#if grupo}
           {#key grupo.id}
-            <ImportarEstudiantes grupoId={grupo.id} onImportado={actualizarEstudiantes} />
+            <ImportarEstudiantes grupoId={grupo.id} onImportado={async (ids) => {
+              ultimoLote = ids;
+              await actualizarEstudiantes();
+            }} />
           {/key}
         {/if}
       {/if}

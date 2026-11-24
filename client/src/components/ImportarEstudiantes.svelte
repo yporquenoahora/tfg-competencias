@@ -1,4 +1,5 @@
 <script>
+    import { leerCsvEstudiantes } from '../lib/csvEstudiantes.js';
     import { api } from '../lib/api.js';
 
     let { grupoId, onImportado = () => {} } = $props();
@@ -25,43 +26,7 @@
         resultado = null;
 
         try {
-            const texto = (await archivo.text()).replace(/^\uFEFF/, '');
-            const lineas = texto.split(/\r?\n/).filter((linea) => linea.trim());
-
-            if (lineas.length < 2) {
-                throw new Error('El CSV debe contener cabecera y estudiantes.');
-            }
-
-            const separador = lineas[0].includes(';') ? ';' : ',';
-            const cabecera = lineas[0]
-                .split(separador)
-                .map((valor) => valor.trim().toLowerCase());
-
-            const indiceCodigo = cabecera.indexOf('codigo');
-            const indiceNombre = cabecera.indexOf('nombre');
-
-            if (indiceCodigo === -1 || indiceNombre === -1) {
-                throw new Error(
-                    'El CSV debe incluir las columnas codigo y nombre.',
-                );
-            }
-
-            const estudiantes = lineas.slice(1).map((linea, indice) => {
-                const columnas = linea
-                    .split(separador)
-                    .map((valor) => valor.trim());
-
-                if (columnas.length !== cabecera.length) {
-                    throw new Error(
-                        `Número de columnas incorrecto en la fila ${indice + 2}.`,
-                    );
-                }
-
-                return {
-                    codigo: columnas[indiceCodigo],
-                    nombre: columnas[indiceNombre],
-                };
-            });
+            const estudiantes = leerCsvEstudiantes(await archivo.text());
 
             const datos = await api(
                 `/grupos/${encodeURIComponent(grupoId)}/estudiantes/importar`,
@@ -72,7 +37,7 @@
             );
 
             resultado = datos;
-            await onImportado();
+            await onImportado(datos.nuevasMatriculas ?? []);
         } catch (e) {
             error = e.message;
         } finally {
