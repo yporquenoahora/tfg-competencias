@@ -1,4 +1,4 @@
-import { intervalo, resumirIndicadores } from './periodos.js';
+import { compararQuincenas, intervalo, resumirIndicadores } from './periodos.js';
 
 import express from 'express';
 import cors from 'cors';
@@ -594,7 +594,7 @@ app.get('/api/curso/seguimiento', async (req, res) => {
         },
         valoraciones: {
           where: { fecha: { gte: inicio, lt: fin } },
-          select: { estudianteId: true, indicadorId: true, fecha: true, nivel: true },
+          select: { estudianteId: true, indicadorId: true, fecha: true, nivel: true, evidencia: { select: { actividad: { select: { titulo: true } } } } },
           orderBy: [{ fecha: 'desc' }, { id: 'desc' }],
         },
       },
@@ -610,11 +610,12 @@ app.get('/api/curso/seguimiento', async (req, res) => {
       for (const v of i.valoraciones) {
         if (!matriculados.has(v.estudianteId)) continue;
         const indice = Math.floor((v.fecha - inicio) / (14 * 86400000));
-        const ventana = ventanas.get(indice) ?? { pares: new Set(), observados: new Set(), dificultad: new Set() };
+        const ventana = ventanas.get(indice) ?? { pares: new Map(), observados: new Set(), dificultad: new Set(), actividades: new Set() };
         ventanas.set(indice, ventana);
+        if (v.evidencia?.actividad.titulo) ventana.actividades.add(v.evidencia.actividad.titulo);
         const clave = `${v.estudianteId}/${v.indicadorId}`;
         if (ventana.pares.has(clave)) continue;
-        ventana.pares.add(clave);
+        ventana.pares.set(clave, v.nivel);
         ventana.observados.add(v.estudianteId);
         if (v.nivel <= 2) ventana.dificultad.add(v.estudianteId);
       }
@@ -627,10 +628,18 @@ app.get('/api/curso/seguimiento', async (req, res) => {
         })),
         ventanas: [...ventanas].map(([indice, v]) => ({
           indice, observados: v.observados.size, dificultad: v.dificultad.size,
+          actividades: [...v.actividades],
+          evolucion: compararQuincenas(v.pares, ventanas.get(indice - 1)?.pares),
         })),
       };
     });
-    res.json({ inicio, fin, filas });
+    const gruposDelCurso = await prisma.grupo.findMany({
+      where: { curso }, select: { id: true, nombre: true }, orderBy: { nombre: 'asc' },
+    });
+    const gruposConModulo = new Set(filas.map((fila) => fila.grupoId));
+    res.json({ inicio, fin, filas,
+      gruposSinModulo: gruposDelCurso.filter(({ id }) => !gruposConModulo.has(id)),
+    });
   } catch (error) {
     console.error('Error al consultar la evolución del curso:', error);
     res.status(500).json({ error: 'No se pudo cargar la evolución del curso' });

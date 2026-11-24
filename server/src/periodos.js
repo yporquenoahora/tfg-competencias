@@ -37,3 +37,20 @@ export function resumirIndicadores(valoraciones) {
   }
   return [...indicadores.values()].sort((a, b) => b.dificultad.length - a.dificultad.length || a.id - b.id);
 }
+
+export function compararQuincenas(actual, anterior) {
+  const alumnado = new Map();
+  if (anterior) {
+    for (const [clave, nivel] of actual) {
+      if (!anterior.has(clave)) continue;
+      const estudiante = clave.split('/')[0];
+      const balance = (nivel > 2 ? 1 : 0) - (anterior.get(clave) > 2 ? 1 : 0);
+      alumnado.set(estudiante, (alumnado.get(estudiante) ?? 0) + balance);
+    }
+  }
+  const grupos = { mejora: 0, estable: 0, retroceso: 0 };
+  for (const balance of alumnado.values()) {
+    grupos[balance > 0 ? 'mejora' : balance < 0 ? 'retroceso' : 'estable']++;
+  }
+  return { ...grupos, comparables: alumnado.size };
+}

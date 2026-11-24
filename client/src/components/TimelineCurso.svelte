@@ -1,4 +1,5 @@
 <script>
+  import GraficoCurso from './GraficoCurso.svelte';
   import { api } from '../lib/api.js';
   export let cursos = [];
   export let abrir;
@@ -193,6 +194,9 @@
     {#if errorHito}<p class="error" role="alert">{errorHito}</p>{/if}
     {#if avisoHito}<p class="exito" role="status">{avisoHito}</p>{/if}
 
+    <GraficoCurso filas={filasVisibles} periodos={visibles} {abrir} />
+    <details>
+      <summary>Ver tabla comparativa de todos los grupos</summary>
     <p>Cada celda muestra alumnado con alguna dificultad sobre alumnado observado. Pulsa una quincena de un grupo para revisar el detalle.</p>
     <div class="tabla-scroll">
       <table class="timeline">
@@ -220,6 +224,7 @@
         </tbody>
       </table>
     </div>
+    </details>
     <h3>Hitos de revisión</h3>
     {#if hitosVisibles.length}
       <ul class="lista lista-hitos">
@@ -243,6 +248,13 @@
       </ul>
     {:else}<p>Este periodo todavía no tiene hitos programados.</p>{/if}
   {:else}<p>Añade un módulo a un grupo para consultar su evolución.</p>{/if}
+  {#if datos?.gruposSinModulo?.length}
+    <details>
+      <summary>Grupos sin módulo asignado ({datos.gruposSinModulo.length})</summary>
+      <ul>{#each datos.gruposSinModulo as grupo (grupo.id)}<li>{grupo.nombre}</li>{/each}</ul>
+      <p>Selecciona el grupo en la cabecera y pulsa «Añadir módulo» para empezar su seguimiento.</p>
+    </details>
+  {/if}
 </section>
 
 <style>
