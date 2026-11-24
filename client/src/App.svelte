@@ -141,18 +141,33 @@
     return nueva;
   }
 
-  async function cargarGrupo() {
+  let grupos = [];
+  let grupoElegido = '';
+  let creandoGrupo = false;
+  let nombreGrupo = '';
+  let cicloGrupo = '';
+  let cursoGrupo = '';
+  let errorAltaGrupo = '';
+  let guardandoGrupo = false;
+  let ciclosGrupos = [];
+
+  async function cargarGrupo(id = grupoElegido) {
     cargandoGrupo = true;
     errorGrupo = '';
+    grupo = null;
+    estudiantes = [];
+    imparticiones = [];
+    seleccionarModulo('');
+    void seleccionarEstudiante('');
     try {
-      grupo = await obtenerGrupo(1);
+      grupos = await api('/grupos');
+      grupoElegido = id || String(grupos[0]?.id ?? '');
+      if (!grupoElegido) return;
+      grupo = await obtenerGrupo(grupoElegido);
       estudiantes = grupo.estudiantes ?? [];
       imparticiones = grupo.imparticiones ?? [];
-      imparticionElegida = imparticiones.length
-        ? String(imparticiones[0].id)
-        : '';
+      seleccionarModulo(String(imparticiones[0]?.id ?? ''));
       void seleccionarEstudiante(estudiantes[0]?.id ?? '');
-      void cargarSeguimiento();
     } catch (error) {
       errorGrupo = error.message;
     } finally {
@@ -160,11 +175,50 @@
     }
   }
 
+  async function abrirAltaGrupo() {
+    cursoGrupo = grupo?.curso ?? grupos[0]?.curso ?? '';
+    creandoGrupo = true;
+    errorAltaGrupo = '';
+    try {
+      const fichas = await api('/catalogo-curricular');
+      ciclosGrupos = [...new Set(fichas.flatMap((ficha) => ficha.ofertas.map((oferta) => oferta.ciclo)))]
+        .filter((ciclo) => !ciclo.startsWith('Optativas de Madrid'))
+        .sort((a, b) => a.localeCompare(b, 'es'));
+    } catch (error) {
+      errorAltaGrupo = error.message;
+    }
+  }
+
+  async function crearGrupo(evento) {
+    evento.preventDefault();
+    if (guardandoGrupo) return;
+    guardandoGrupo = true;
+    errorAltaGrupo = '';
+    try {
+      const nuevo = await api('/grupos', {
+        method: 'POST',
+        body: JSON.stringify({ nombre: nombreGrupo, curso: cursoGrupo, ciclo: cicloGrupo }),
+      });
+      creandoGrupo = false;
+      nombreGrupo = '';
+      cicloGrupo = '';
+      await cargarGrupo(String(nuevo.id));
+      vistaActiva = 'modulos';
+    } catch (error) {
+      errorAltaGrupo = error.message;
+    } finally {
+      guardandoGrupo = false;
+    }
+  }
+
   async function actualizarEstudiantes() {
     try {
       errorGrupo = '';
 
-      const grupoActualizado = await obtenerGrupo(1);
+      const id = grupo?.id;
+      if (!id) return;
+      const grupoActualizado = await obtenerGrupo(id);
+      if (grupo?.id !== id) return;
 
       grupo = grupoActualizado;
       estudiantes = grupoActualizado.estudiantes ?? [];
@@ -249,11 +303,13 @@
   }
 
   async function importarModulo(catalogoId) {
-    const imparticion = await api(`/grupos/${grupo.id}/modulos/catalogo`, {
+    const grupoId = grupo.id;
+    const imparticion = await api(`/grupos/${grupoId}/modulos/catalogo`, {
       method: 'POST',
       body: JSON.stringify({ catalogoId }),
     });
 
+    if (grupo?.id !== grupoId) return;
     if (!imparticiones.some((item) => item.id === imparticion.id)) {
       imparticiones = [...imparticiones, imparticion];
     }
@@ -380,8 +436,14 @@
         </div>
         <div class="contexto-controles">
           <div class="contexto-grupo">
-            <span>Grupo actual</span>
-            <strong>{grupo ? `${grupo.nombre} · ${grupo.curso}` : '—'}</strong>
+            <label for="grupo-activo">Grupo actual</label>
+            <select id="grupo-activo" value={grupoElegido} disabled={cargandoGrupo || guardandoValoracion || !grupos.length}
+              onchange={(evento) => cargarGrupo(evento.currentTarget.value)}>
+              {#if !grupos.length}<option value="">Sin grupos disponibles</option>{/if}
+              {#each grupos as item (item.id)}
+                <option value={String(item.id)}>{item.nombre} · {item.curso}</option>
+              {/each}
+            </select>
           </div>
           <div class="contexto-modulo">
             <label for="modulo-activo">Módulo activo</label>
@@ -399,15 +461,38 @@
               {/each}
             </select>
           </div>
+          <button class="secundario" onclick={abrirAltaGrupo}>Nuevo grupo</button>
           {#if vistaActiva !== 'modulos'}
             <button class="secundario" onclick={() => (vistaActiva = 'modulos')}>Añadir módulo</button>
           {/if}
         </div>
       </header>
 
+      {#if creandoGrupo}
+        <section class="panel">
+          <h2>Nuevo grupo</h2>
+          <form class="formulario" onsubmit={crearGrupo}>
+            <label for="nuevo-grupo-nombre">Nombre del grupo</label>
+            <input id="nuevo-grupo-nombre" bind:value={nombreGrupo} placeholder="2.º DAM A" required />
+            <label for="nuevo-grupo-ciclo">Ciclo</label>
+            <select id="nuevo-grupo-ciclo" bind:value={cicloGrupo} required>
+              <option value="">Selecciona el ciclo</option>
+              {#each ciclosGrupos as ciclo (ciclo)}<option value={ciclo}>{ciclo}</option>{/each}
+            </select>
+            <label for="nuevo-grupo-curso">Curso académico</label>
+            <input id="nuevo-grupo-curso" bind:value={cursoGrupo} placeholder="2026/2027" required />
+            {#if errorAltaGrupo}<p class="error" role="alert">{errorAltaGrupo}</p>{/if}
+            <div class="acciones">
+              <button disabled={guardandoGrupo || !ciclosGrupos.length}>Crear grupo</button>
+              <button class="secundario" type="button" disabled={guardandoGrupo} onclick={() => (creandoGrupo = false)}>Cancelar</button>
+            </div>
+          </form>
+        </section>
+      {/if}
+
       {#if errorGrupo && vistaActiva !== 'evaluacion'}
         <p class="error" role="alert">No se pudo cargar el grupo. {errorGrupo}</p>
-        <button class="secundario" onclick={cargarGrupo}>Reintentar</button>
+        <button class="secundario" onclick={() => cargarGrupo()}>Reintentar</button>
       {/if}
 
       {#if vistaActiva === 'catalogo' && mensajeModulo}
@@ -415,7 +500,13 @@
       {/if}
 
       {#if vistaActiva === 'modulos'}
-        <ImportarModulo {grupo} {imparticiones} guardar={importarModulo} />
+        {#if grupo?.ciclo}
+          {#key grupo.id}
+            <ImportarModulo {grupo} {imparticiones} guardar={importarModulo} />
+          {/key}
+        {:else if !cargandoGrupo}
+          <p>Selecciona o crea un grupo con ciclo para consultar sus módulos.</p>
+        {/if}
       {/if}
 
       <div hidden={vistaActiva !== 'catalogo'}>
@@ -438,7 +529,7 @@
           {:else if errorGrupo}
             <section class="panel">
               <p class="error" role="alert">{errorGrupo}</p>
-              <button onclick={cargarGrupo}>Reintentar</button>
+              <button onclick={() => cargarGrupo()}>Reintentar</button>
             </section>
           {:else}
             <SeguimientoIndividual
@@ -487,10 +578,11 @@
           }}
         />
 
-        <ImportarEstudiantes
-          grupoId={grupo?.id ?? 1}
-          onImportado={actualizarEstudiantes}
-        />
+        {#if grupo}
+          {#key grupo.id}
+            <ImportarEstudiantes grupoId={grupo.id} onImportado={actualizarEstudiantes} />
+          {/key}
+        {/if}
       {/if}
     </div>
   </div>

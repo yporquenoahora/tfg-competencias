@@ -50,7 +50,7 @@
     cargando = true;
     errorCatalogo = '';
     try {
-      const datos = await api('/catalogo-curricular');
+      const datos = await api(`/catalogo-curricular?ciclo=${encodeURIComponent(grupo.ciclo)}`);
       modulos = datos.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
     } catch (error) {
       errorCatalogo = error.message;
@@ -77,7 +77,7 @@
 
 <section class="panel">
   <h2>Añadir un módulo al grupo</h2>
-  <p>Busca por nombre o ciclo. Al añadir un módulo, sus resultados de aprendizaje y criterios de evaluación quedan disponibles para el seguimiento.</p>
+  <p>Módulos disponibles para <strong>{grupo.ciclo}</strong>. Al añadir un módulo, sus resultados de aprendizaje y criterios de evaluación quedan disponibles para el seguimiento.</p>
 
   {#if cargando}
     <p role="status">Cargando catálogo curricular…</p>

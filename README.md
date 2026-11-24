@@ -208,8 +208,9 @@ La aplicación frontend estará disponible normalmente en:
 
 - **Alumno** permite seleccionar a un estudiante, revisar su historial y registrar observaciones en el módulo activo.
 - **Grupo** muestra el seguimiento agregado del módulo y ofrece acceso a las fichas individuales.
+- **Grupo actual** cambia el grupo de trabajo. Con **Nuevo grupo** puedes crear otro e indicar su ciclo. Cada grupo tiene sus propias matrículas e imparticiones.
 - El selector **Módulo activo** de la cabecera cambia el contexto en todas las vistas. **Catálogo** permite guardar una selección de indicadores para ese módulo.
-- Para incorporar un módulo nuevo al grupo actual, abre **Módulos** o pulsa **Añadir módulo**. Busca el módulo por nombre, especialidad (INF, SAI o TEC) o ciclo. Abre la ficha para consultar los resultados de aprendizaje y criterios de evaluación. Pulsa **Añadir al grupo** para activar el módulo con su currículo y pasar a **Catálogo**.
+- Para incorporar un módulo nuevo al grupo actual, abre **Módulos** o pulsa **Añadir módulo**. Busca el módulo por nombre, especialidad (INF, SAI o TEC) entre las fichas compatibles con el ciclo del grupo activo. Abre la ficha para consultar los resultados de aprendizaje y criterios de evaluación. Pulsa **Añadir al grupo** para activar el módulo con su currículo y pasar a **Catálogo**.
 
 La primera carga curricular cubre las atribuciones identificadas en los reales decretos 497–500/2024, el curso de especialización en Python y las optativas madrileñas CMO-310 a CMO-318. Para Tecnología, la ficha del proyecto colaborativo de grado básico identifica la atribución vinculada al ámbito de Ciencias Aplicadas. Las fichas mantienen la fuente del currículo y la atribución por ciclo. Las variantes con el mismo código y resultados de aprendizaje distintos se mantienen como fichas independientes. Cuando la fuente repite una etiqueta, se añade un sufijo interno para distinguir ambas entradas.
 

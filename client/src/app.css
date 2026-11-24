@@ -311,12 +311,13 @@ button.secundario:disabled { background: #F8EEE7; color: #8B776C; border-color: 
   min-width: 0;
 }
 
-.contexto-grupo span,
+.contexto-grupo label,
 .contexto-modulo label {
   font-size: 0.85rem;
   font-weight: 600;
 }
 
+.contexto-grupo select,
 .contexto-modulo select {
   width: 100%;
   max-width: min(340px, 80vw);

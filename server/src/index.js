@@ -227,6 +227,51 @@ app.post('/api/configuraciones', async (req, res) => {
 });
 
 
+const seleccionarGrupo = { id: true, nombre: true, curso: true, ciclo: true };
+const ciclosCatalogo = new Set([...catalogoCurricular.values()]
+  .flatMap((modulo) => modulo.ofertas.map((oferta) => oferta.ciclo))
+  .filter((ciclo) => !ciclo.startsWith('Optativas de Madrid')));
+
+function moduloCompatible(modulo, ciclo) {
+  return modulo.ofertas.some((oferta) =>
+    oferta.ciclo === ciclo ||
+    (oferta.ciclo === 'Optativas de Madrid · Informática y Comunicaciones' &&
+      ['Desarrollo de Aplicaciones Web', 'Desarrollo de Aplicaciones Multiplataforma',
+        'Administración de Sistemas Informáticos en Red', 'Sistemas Microinformáticos y Redes'].includes(ciclo)),
+  );
+}
+
+app.get('/api/grupos', async (req, res) => {
+  try {
+    res.json(await prisma.grupo.findMany({ select: seleccionarGrupo, orderBy: { id: 'asc' } }));
+  } catch (error) {
+    console.error('Error al consultar grupos:', error);
+    res.status(500).json({ error: 'No se pudieron cargar los grupos' });
+  }
+});
+
+app.post('/api/grupos', async (req, res) => {
+  const { nombre, curso, ciclo } = req.body ?? {};
+  if (typeof nombre !== 'string' || !nombre.trim() ||
+      typeof curso !== 'string' || !/^\d{4}\/\d{4}$/.test(curso) ||
+      !ciclosCatalogo.has(ciclo)) {
+    return res.status(400).json({ error: 'Indica el nombre, el ciclo y el curso académico (AAAA/AAAA)' });
+  }
+  try {
+    const datos = { nombre: nombre.trim(), curso, ciclo };
+    const grupo = await prisma.$transaction(async (tx) => {
+      const clave = JSON.stringify(datos);
+      await tx.$queryRaw`SELECT 1 AS bloqueo FROM pg_advisory_xact_lock(4372, hashtext(${clave}))`;
+      const existente = await tx.grupo.findFirst({ where: datos, select: seleccionarGrupo });
+      return existente ?? tx.grupo.create({ data: datos, select: seleccionarGrupo });
+    });
+    res.json(grupo);
+  } catch (error) {
+    console.error('Error al crear grupo:', error);
+    res.status(500).json({ error: 'No se pudo crear el grupo' });
+  }
+});
+
 app.get('/api/grupos/:grupoId/estudiantes', async (req, res) => {
   try {
     const grupoId = Number(req.params.grupoId);
@@ -263,7 +308,12 @@ app.get('/api/grupos/:grupoId/estudiantes', async (req, res) => {
       id: grupo.id,
       nombre: grupo.nombre,
       curso: grupo.curso,
-      imparticiones: grupo.imparticiones,
+      ciclo: grupo.ciclo,
+      imparticiones: grupo.imparticiones.filter((imparticion) => {
+        const codigo = imparticion.modulo?.codigo;
+        const ficha = codigo?.startsWith('oficial:') && catalogoCurricular.get(codigo.slice(8));
+        return !ficha || !grupo.ciclo || moduloCompatible(ficha, grupo.ciclo);
+      }),
       estudiantes: grupo.matriculas
         .map(matricula => matricula.estudiante)
         .sort((a, b) => a.codigo.localeCompare(b.codigo))
@@ -1230,7 +1280,9 @@ app.get('/api/evidencias', async (req, res) => {
 
 
 app.get('/api/catalogo-curricular', (req, res) => {
-  res.json([...catalogoCurricular.values()]);
+  const { ciclo } = req.query;
+  const modulos = [...catalogoCurricular.values()];
+  res.json(ciclo ? modulos.filter((modulo) => moduloCompatible(modulo, ciclo)) : modulos);
 });
 
 app.post('/api/grupos/:grupoId/modulos/catalogo', async (req, res) => {
@@ -1250,6 +1302,7 @@ app.post('/api/grupos/:grupoId/modulos/catalogo', async (req, res) => {
       await tx.$queryRaw`SELECT 1 AS bloqueo FROM pg_advisory_xact_lock(4371, hashtext(${codigo}))`;
       const grupo = await tx.grupo.findUnique({ where: { id: grupoId } });
       if (!grupo) return null;
+      if (!grupo.ciclo || !moduloCompatible(modulo, grupo.ciclo)) return false;
 
       const curricular = await tx.moduloProfesional.upsert({
         where: { codigo },
@@ -1279,6 +1332,9 @@ app.post('/api/grupos/:grupoId/modulos/catalogo', async (req, res) => {
       });
     });
 
+    if (imparticion === false) {
+      return res.status(409).json({ error: 'El módulo no corresponde al ciclo del grupo seleccionado' });
+    }
     if (!imparticion) return res.status(404).json({ error: 'Grupo no encontrado' });
     res.json(imparticion);
   } catch (error) {

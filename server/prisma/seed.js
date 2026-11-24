@@ -103,6 +103,7 @@ if (!grupo) {
   grupo = await prisma.grupo.create({
     data: {
       nombre: nombreGrupo,
+      ciclo: 'Desarrollo de Aplicaciones Web',
       curso: cursoAcademico,
       descripcion: 'Grupo sintético para pruebas del TFE'
     }
