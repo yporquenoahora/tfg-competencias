@@ -24,6 +24,10 @@
 
   let desde = '';
   let hasta = '';
+  let panelGrupo = 'resumen';
+  const panelesGrupo = [
+    ['resumen', 'Monitorización'], ['perfiles', 'Perfiles y evaluación'], ['aula', 'Aula y matrículas'],
+  ];
   let vistaActiva = 'evaluacion';
   let rubricas = [];
   let errorRubricas = '';
@@ -318,6 +322,7 @@
   }
 
   async function abrirRevision(fila, inicio, fin) {
+    panelGrupo = 'resumen';
     desde = inicio;
     hasta = fin;
     if (String(fila.grupoId) !== grupoElegido) await cargarGrupo(String(fila.grupoId));
@@ -606,18 +611,19 @@
       {/if}
 
       {#if vistaActiva === 'grupo'}
-        <form class="panel revision-periodo" onsubmit={(evento) => { evento.preventDefault(); cargarSeguimiento(); }}>
+        <nav class="paneles-grupo" aria-label="Vistas del grupo">
+          {#each panelesGrupo as [clave, etiqueta] (clave)}
+            <button type="button" class="secundario" aria-pressed={panelGrupo === clave}
+              onclick={() => (panelGrupo = clave)}>{etiqueta}</button>
+          {/each}
+        </nav>
+        <form class="panel revision-periodo filtros-monitorizacion" onsubmit={(evento) => { evento.preventDefault(); cargarSeguimiento(); }}>
           <label>Desde <input type="date" bind:value={desde} /></label>
           <label>Hasta <input type="date" bind:value={hasta} /></label>
           <button>Revisar periodo</button>
           <button class="secundario" type="button" onclick={() => { desde = ''; hasta = ''; cargarSeguimiento(); }}>Todo el curso</button>
         </form>
-        {#if grupo}
-          {#key grupo.id}
-            <AsientosGrupo {grupo} {grupos} {estudiantes} {ultimoLote} actualizar={actualizarEstudiantes}
-              abrir={(id) => { seleccionarEstudiante(id); vistaActiva = 'evaluacion'; }} />
-          {/key}
-        {/if}
+        <div hidden={panelGrupo !== 'resumen'}>
         <DashboardGrupal
           {seguimiento}
           cargando={cargandoSeguimiento}
@@ -629,6 +635,9 @@
           }}
         />
 
+        </div>
+
+        <div hidden={panelGrupo !== 'perfiles'}>
         {#if imparticionElegida}
           {#key imparticionElegida}
             <PerfilesGrupo perfiles={seguimiento?.perfiles ?? []} {estudiantes}
@@ -639,6 +648,15 @@
           {/key}
         {/if}
 
+        </div>
+
+        <div hidden={panelGrupo !== 'aula'}>
+        {#if grupo}
+          {#key grupo.id}
+            <AsientosGrupo {grupo} {grupos} {estudiantes} {ultimoLote} actualizar={actualizarEstudiantes}
+              abrir={(id) => { seleccionarEstudiante(id); vistaActiva = 'evaluacion'; }} />
+          {/key}
+        {/if}
         {#if grupo}
           {#key grupo.id}
             <ImportarEstudiantes grupoId={grupo.id} onImportado={async (ids) => {
@@ -647,6 +665,7 @@
             }} />
           {/key}
         {/if}
+        </div>
       {/if}
     </div>
   </div>

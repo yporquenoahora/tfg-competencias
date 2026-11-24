@@ -353,3 +353,21 @@ button.secundario:disabled { background: #F8EEE7; color: #8B776C; border-color: 
   background: white;
   color: inherit;
 }
+
+.paneles-grupo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0 0;
+}
+
+.paneles-grupo button[aria-pressed="true"] {
+  background: #563827;
+  border-color: #563827;
+  color: white;
+}
+
+.filtros-monitorizacion {
+  margin-block: 12px;
+  padding-block: 10px;
+}
