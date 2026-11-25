@@ -371,3 +371,7 @@ button.secundario:disabled { background: #F8EEE7; color: #8B776C; border-color: 
   margin-block: 12px;
   padding-block: 10px;
 }
+
+.filtros-monitorizacion[hidden] {
+  display: none;
+}

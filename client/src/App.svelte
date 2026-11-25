@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { api } from './lib/api.js';
   import Catalogo from './components/Catalogo.svelte';
+  import EditarContexto from './components/EditarContexto.svelte';
   import TimelineCurso from './components/TimelineCurso.svelte';
   import AsientosGrupo from './components/AsientosGrupo.svelte';
   import PerfilesGrupo from './components/PerfilesGrupo.svelte';
@@ -26,7 +27,7 @@
   let hasta = '';
   let panelGrupo = 'resumen';
   const panelesGrupo = [
-    ['resumen', 'Monitorización'], ['perfiles', 'Perfiles y evaluación'], ['aula', 'Aula y matrículas'],
+    ['resumen', 'Monitorización'], ['perfiles', 'Perfiles y evaluación'], ['aula', 'Aula y matrículas'], ['datos', 'Datos de grupo y módulo'],
   ];
   let vistaActiva = 'evaluacion';
   let rubricas = [];
@@ -34,9 +35,9 @@
   let evidenciaIdSeleccionada = '';
   let mensajeModulo = '';
   const vistas = [
+    { id: 'curso', nombre: 'Curso · Evolución', detalle: 'Compara la cobertura y las dificultades de tus grupos por quincena.' },
     { id: 'evaluacion', nombre: 'Alumno', detalle: 'Consulta su evolución, registra observaciones y prepara refuerzos.' },
     { id: 'grupo', nombre: 'Grupo', detalle: 'Consulta las dificultades observadas en el grupo y abre el seguimiento de cada alumno.' },
-    { id: 'curso', nombre: 'Curso', detalle: 'Compara la cobertura y las dificultades de tus grupos por quincena.' },
     { id: 'catalogo', nombre: 'Catálogo', detalle: 'Elige los indicadores que quieres observar en el módulo activo.' },
     { id: 'modulos', nombre: 'Módulos', detalle: 'Incorpora un módulo y sus referentes curriculares al grupo actual.' },
   ];
@@ -321,14 +322,20 @@
     }
   }
 
-  async function abrirRevision(fila, inicio, fin) {
+  async function abrirRevision(fila, inicio, fin, estudianteId) {
     panelGrupo = 'resumen';
     desde = inicio;
     hasta = fin;
     if (String(fila.grupoId) !== grupoElegido) await cargarGrupo(String(fila.grupoId));
-    vistaActiva = 'grupo';
-    if (String(fila.id) === imparticionElegida) await cargarSeguimiento();
+    if (String(grupo?.id) !== String(fila.grupoId) || !imparticiones.some((i) => i.id === fila.id)) return;
+    if (String(fila.id) === imparticionElegida) void cargarSeguimiento();
     else seleccionarModulo(String(fila.id));
+    if (estudianteId && estudiantes.some((alumno) => alumno.id === estudianteId)) {
+      void seleccionarEstudiante(estudianteId);
+      vistaActiva = 'evaluacion';
+    } else {
+      vistaActiva = 'grupo';
+    }
   }
 
   function seleccionarModulo(id) {
@@ -473,6 +480,7 @@
           <h1>{vista.nombre}</h1>
           <p>{vista.detalle}</p>
         </div>
+        {#if vistaActiva !== 'curso'}
         <div class="contexto-controles">
           <div class="contexto-grupo">
             <label for="grupo-activo">Grupo actual</label>
@@ -505,6 +513,7 @@
             <button class="secundario" onclick={() => (vistaActiva = 'modulos')}>Añadir módulo</button>
           {/if}
         </div>
+        {/if}
       </header>
 
       {#if creandoGrupo}
@@ -596,6 +605,7 @@
               {mensajeValoracion}
               {errorValoracion}
               {seleccionarEstudiante}
+              actualizarSeguimiento={cargarSeguimiento}
               {recuperarConfiguracion}
               {guardarValoracion}
               {guardarPlan}
@@ -619,12 +629,19 @@
               onclick={() => (panelGrupo = clave)}>{etiqueta}</button>
           {/each}
         </nav>
-        <form class="panel revision-periodo filtros-monitorizacion" onsubmit={(evento) => { evento.preventDefault(); cargarSeguimiento(); }}>
+        <form class="panel revision-periodo filtros-monitorizacion" hidden={panelGrupo === 'datos' || panelGrupo === 'aula'} onsubmit={(evento) => { evento.preventDefault(); cargarSeguimiento(); }}>
           <label>Desde <input type="date" bind:value={desde} /></label>
           <label>Hasta <input type="date" bind:value={hasta} /></label>
           <button>Revisar periodo</button>
           <button class="secundario" type="button" onclick={() => { desde = ''; hasta = ''; cargarSeguimiento(); }}>Todo el curso</button>
         </form>
+        {#if panelGrupo === 'datos' && grupo}
+          <EditarContexto {grupo} imparticion={imparticiones.find((i) => String(i.id) === imparticionElegida)}
+            actualizar={async () => {
+              grupos = await api('/grupos');
+              await actualizarEstudiantes();
+            }} />
+        {/if}
         <div hidden={panelGrupo !== 'resumen'}>
         <DashboardGrupal
           {seguimiento}

@@ -1,7 +1,7 @@
 <script>
     import Evolucion from '../components/Evolucion.svelte';
     import PlanesRefuerzo from '../components/PlanesRefuerzo.svelte';
-    import { API_BASE } from '../lib/api.js';
+    import { api, API_BASE } from '../lib/api.js';
 
     export let informeDesde = '';
     export let informeHasta = '';
@@ -43,6 +43,7 @@
     export let mensajeValoracion = '';
     export let errorValoracion = '';
     export let seleccionarEstudiante;
+    export let actualizarSeguimiento = () => {};
     export let abrirCatalogo;
     export let recuperarConfiguracion;
     export let guardarValoracion;
@@ -155,6 +156,39 @@
             if (version === versionEvidencias) errorEvidencias = error.message;
         } finally {
             if (version === versionEvidencias) cargandoEvidencias = false;
+        }
+    }
+
+    let correccion = null;
+    let corrigiendo = false;
+    let errorCorreccion = '';
+    $: limpiarCorreccion(estudianteElegido, imparticionElegida);
+
+    function limpiarCorreccion() {
+        correccion = null;
+        errorCorreccion = '';
+    }
+
+    async function guardarCorreccion(evento) {
+        evento.preventDefault();
+        if (!correccion || corrigiendo) return;
+        const { id, estudianteId, imparticionId, nivel, observacion } = correccion;
+        corrigiendo = true;
+        errorCorreccion = '';
+        try {
+            await api(`/valoraciones/${id}`, {
+                method: 'PATCH', body: JSON.stringify({ estudianteId, imparticionId, nivel: Number(nivel), observacion }),
+            });
+            trazabilidades = Object.fromEntries(Object.entries(trazabilidades).filter(([clave]) => Number(clave) !== id));
+            valoracionExpandida = null;
+            if (Number(estudianteElegido) === estudianteId && Number(imparticionElegida) === imparticionId) {
+                await Promise.all([seleccionarEstudiante(estudianteId), actualizarSeguimiento()]);
+                limpiarCorreccion();
+            }
+        } catch (fallo) {
+            errorCorreccion = fallo.message;
+        } finally {
+            corrigiendo = false;
         }
     }
 
@@ -996,6 +1030,23 @@
                                             ? 'Ocultar detalles'
                                             : 'Ver trazabilidad'}
                                     </button>
+
+                                    {#if correccion?.id === valoracion.id}
+                                        <form class="revision-periodo" onsubmit={guardarCorreccion}>
+                                            <label>Nivel corregido <select bind:value={correccion.nivel}>
+                                                {#each [1, 2, 3, 4] as nivel (nivel)}<option value={String(nivel)}>{nivel}/4</option>{/each}
+                                            </select></label>
+                                            <label>Observación <textarea bind:value={correccion.observacion} rows="2" maxlength="2000"></textarea></label>
+                                            <button disabled={corrigiendo}>Guardar corrección</button>
+                                            <button class="secundario" type="button" disabled={corrigiendo} onclick={() => limpiarCorreccion()}>Cancelar</button>
+                                        </form>
+                                        {#if errorCorreccion}<p class="error" role="alert">{errorCorreccion}</p>{/if}
+                                    {:else}
+                                        <button class="secundario" type="button" disabled={corrigiendo}
+                                            onclick={() => { correccion = { ...valoracion, nivel: String(valoracion.nivel), observacion: valoracion.observacion ?? '' }; errorCorreccion = ''; }}>
+                                            Corregir valoración
+                                        </button>
+                                    {/if}
 
                                     {#if valoracionExpandida === valoracion.id}
                                         <div class="detalle-trazabilidad">

@@ -18,9 +18,65 @@
   ];
   $: observados = seguimiento?.resumen.estudiantesObservados ?? 0;
   $: total = seguimiento?.resumen.totalEstudiantes ?? 0;
+  let errorInforme = '';
+  function imprimirGrupo() {
+    errorInforme = '';
+    const ventana = window.open('', '_blank', 'width=900,height=720');
+    if (!ventana) { errorInforme = 'Permite las ventanas emergentes para abrir el informe.'; return; }
+    ventana.opener = null;
+    const doc = ventana.document;
+    doc.documentElement.lang = 'es';
+    doc.title = 'Informe de seguimiento del grupo';
+    const estilo = doc.createElement('style');
+    estilo.textContent = 'body{font:15px system-ui;max-width:850px;margin:32px auto;padding:0 18px;color:#252122} table{width:100%;border-collapse:collapse} td,th{padding:8px;border:1px solid #ddd;text-align:left} @media print{button{display:none}}';
+    doc.head.append(estilo);
+    const agregar = (tag, texto, padre = doc.body) => {
+      const nodo = doc.createElement(tag);
+      nodo.textContent = texto;
+      padre.append(nodo);
+      return nodo;
+    };
+    agregar('h1', doc.title);
+    agregar('p', `${seguimiento.imparticion.grupo} · ${seguimiento.imparticion.nombreModulo}`);
+    const periodo = seguimiento.periodo;
+    const mostrarFecha = (fecha) => fecha?.split('-').reverse().join('/');
+    agregar('p', periodo?.desde || periodo?.hasta
+      ? `Periodo: ${mostrarFecha(periodo.desde) ?? 'Inicio'} — ${mostrarFecha(periodo.hasta) ?? 'Última observación'}`
+      : 'Periodo completo');
+    agregar('p', `${observados}/${total} alumnos con observaciones · ${seguimiento.resumen.totalValoraciones} valoraciones`);
+    const imprimir = agregar('button', 'Imprimir o guardar PDF');
+    imprimir.addEventListener('click', () => ventana.print());
+    agregar('h2', 'Dificultad por indicador');
+    const tabla = agregar('table', '');
+    const cabecera = agregar('tr', '', tabla);
+    for (const titulo of ['Indicador', 'En dificultad / observados', 'RA y CE']) agregar('th', titulo, cabecera);
+    for (const fila of seguimiento.porIndicador ?? []) {
+      const tr = agregar('tr', '', tabla);
+      agregar('td', fila.nombre, tr);
+      agregar('td', `${fila.dificultad.length}/${fila.observados}`, tr);
+      agregar('td', (fila.criterios ?? []).map(({ ra, ce }) => `${ra} · ${ce}`).join(', ') || 'Sin vínculo registrado', tr);
+    }
+    for (const [titulo, casos, nombre] of [
+      ['Revisión prioritaria', seguimiento.dificultades, (v) => `${v.estudiante} · ${v.indicador}`],
+      ['Atención inicial', seguimiento.atencionesIniciales, (v) => `${v.estudiante} · ${v.indicador}`],
+      ['Sin observaciones', seguimiento.sinObservaciones, (v) => v.nombre],
+      ['Refuerzos pendientes', seguimiento.refuerzos, (v) => `${v.nombre} · ${v.objetivo}`],
+    ]) {
+      agregar('h2', titulo);
+      if (!casos?.length) agregar('p', 'Sin casos en este periodo.');
+      else {
+        const lista = agregar('ul', '');
+        for (const caso of casos) agregar('li', nombre(caso), lista);
+      }
+    }
+  }
 </script>
 <section class="panel dashboard">
-  <div class="cabecera"><div><h2>Seguimiento del grupo</h2></div><button class="secundario" onclick={actualizar} disabled={cargando}>Actualizar datos</button></div>
+  <div class="cabecera"><div><h2>Seguimiento del grupo</h2></div><div class="selector-casos">
+    <button class="secundario" onclick={actualizar} disabled={cargando}>Actualizar datos</button>
+    <button onclick={imprimirGrupo} disabled={cargando || !seguimiento}>Informe de grupo</button>
+  </div></div>
+  {#if errorInforme}<p class="error" role="alert">{errorInforme}</p>{/if}
   {#if cargando}<p>Calculando indicadores...</p>
   {:else if error}<p class="error" role="alert">{error}</p>
   {:else if seguimiento}

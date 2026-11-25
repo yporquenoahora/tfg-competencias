@@ -273,6 +273,27 @@ app.post('/api/grupos', async (req, res) => {
   }
 });
 
+for (const [ruta, modelo, campo] of [
+  ['grupos', prisma.grupo, 'nombre'],
+  ['imparticiones', prisma.imparticionModulo, 'nombreModulo'],
+]) {
+  app.patch(`/api/${ruta}/:id/nombre`, async (req, res) => {
+    const id = Number(req.params.id);
+    const nombre = typeof req.body?.nombre === 'string' ? req.body.nombre.trim() : '';
+    if (!Number.isSafeInteger(id) || id <= 0 || !nombre || nombre.length > 150) {
+      return res.status(400).json({ error: 'Indica un nombre de hasta 150 caracteres' });
+    }
+    try {
+      const cambio = await modelo.updateMany({ where: { id }, data: { [campo]: nombre } });
+      if (!cambio.count) return res.status(404).json({ error: 'Elemento no encontrado' });
+      res.json({ id, nombre });
+    } catch (error) {
+      console.error('Error al cambiar nombre visible:', error);
+      res.status(500).json({ error: 'No se pudo guardar el nombre' });
+    }
+  });
+}
+
 app.get('/api/grupos/:grupoId/estudiantes', async (req, res) => {
   try {
     const grupoId = Number(req.params.grupoId);
@@ -526,6 +547,32 @@ app.post('/api/valoraciones', async (req, res) => {
   }
 });
 
+app.patch('/api/valoraciones/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  const { estudianteId, imparticionId, nivel, observacion } = req.body ?? {};
+  if (![id, estudianteId, imparticionId].every((n) => Number.isSafeInteger(n) && n > 0) ||
+      !Number.isInteger(nivel) || nivel < 1 || nivel > 4 ||
+      typeof observacion !== 'string' || observacion.length > 2000) {
+    return res.status(400).json({ error: 'Completa el nivel y revisa la observación' });
+  }
+  try {
+    const where = { id, estudianteId, imparticionId };
+    const existente = await prisma.valoracion.findFirst({
+      where, include: { rubrica: { include: { niveles: true } } },
+    });
+    if (!existente) return res.status(404).json({ error: 'Valoración no encontrada' });
+    const descriptorAplicado = existente.nivel === nivel ? existente.descriptorAplicado :
+      existente.rubrica?.niveles.find((item) => item.valor === nivel)?.descripcion ?? null;
+    await prisma.valoracion.update({
+      where, data: { nivel, observacion: observacion.trim() || null, descriptorAplicado },
+    });
+    res.json({ id, nivel });
+  } catch (error) {
+    console.error('Error al corregir valoración:', error);
+    res.status(500).json({ error: 'No se pudo corregir la valoración' });
+  }
+});
+
 app.get('/api/estudiantes/:id/valoraciones', async (req, res) => {
   try {
     const estudianteId = Number(req.params.id);
@@ -625,6 +672,18 @@ app.patch('/api/imparticiones/:id/hitos/:hitoId', async (req, res) => {
   }
 });
 
+function resumirQuincenaAlumnos(pares) {
+  const resumen = new Map();
+  for (const [clave, nivel] of pares) {
+    const id = Number(clave.split('/')[0]);
+    const alumno = resumen.get(id) ?? { id, observados: 0, dificultad: 0 };
+    alumno.observados++;
+    if (nivel <= 2) alumno.dificultad++;
+    resumen.set(id, alumno);
+  }
+  return [...resumen.values()];
+}
+
 app.get('/api/curso/seguimiento', async (req, res) => {
   const { curso } = req.query;
   if (typeof curso !== 'string' || !/^\d{4}\/\d{4}$/.test(curso)) {
@@ -640,8 +699,8 @@ app.get('/api/curso/seguimiento', async (req, res) => {
     const imparticiones = await prisma.imparticionModulo.findMany({
       where: { curso },
       include: {
-        modulo: { select: { codigo: true } },
-        grupo: { include: { matriculas: { where: { fechaBaja: null }, select: { estudianteId: true } } } },
+        modulo: { select: { codigo: true, nombre: true } },
+        grupo: { include: { matriculas: { where: { fechaBaja: null }, select: { estudianteId: true, estudiante: { select: { nombre: true, codigo: true } } } } } },
         hitosRevision: {
           where: { fecha: { gte: inicio, lt: fin } },
           orderBy: [{ fecha: 'asc' }, { id: 'asc' }],
@@ -675,6 +734,8 @@ app.get('/api/curso/seguimiento', async (req, res) => {
       }
       return {
         id: i.id, grupoId: i.grupoId, grupo: i.grupo.nombre, modulo: i.nombreModulo,
+        moduloId: i.moduloId, moduloNombre: i.modulo?.nombre,
+        alumnado: i.grupo.matriculas.map((m) => ({ id: m.estudianteId, ...m.estudiante })),
         total: matriculados.size,
         hitos: i.hitosRevision.map((hito) => ({
           ...hito, fecha: hito.fecha.toISOString().slice(0, 10),
@@ -683,6 +744,7 @@ app.get('/api/curso/seguimiento', async (req, res) => {
         ventanas: [...ventanas].map(([indice, v]) => ({
           indice, observados: v.observados.size, dificultad: v.dificultad.size,
           actividades: [...v.actividades],
+          alumnos: resumirQuincenaAlumnos(v.pares),
           evolucion: compararQuincenas(v.pares, ventanas.get(indice - 1)?.pares),
         })),
       };
@@ -877,6 +939,7 @@ app.get('/api/imparticiones/:id/seguimiento', async (req, res) => {
         indicadoresConDificultades: indicadoresPrioritarios.size
       },
 
+      periodo: { desde: req.query.desde ?? null, hasta: req.query.hasta ?? null },
       perfiles: agruparPerfiles(estudiantes, porIndicador),
       porIndicador: porIndicador.map(({ alumnosObservados, ...fila }) => fila),
       sinObservaciones: estudiantes.filter((item) => !estudiantesObservados.has(item.id))
