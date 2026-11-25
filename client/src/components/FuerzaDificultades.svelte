@@ -10,8 +10,9 @@
   const escalaY = (v) => abajo - (abajo - arriba) * v;
   const porcentaje = (v) => `${Math.round(v * 100)} %`;
   const niveles = [0, .25, .5, .75, 1];
-  let abiertos = [];
-  let clase = '';
+  let abiertosManual = [];
+  let clasesMarcadas = [];
+  const coloresClase = ['#a84422', '#235b9a', '#28705c', '#79378e', '#895b10', '#98506a'];
   let elegido = '';
   let ejeManual = '';
   $: reiniciar(puntos);
@@ -21,14 +22,18 @@
   $: grupos = resumir(puntos, motivos);
   $: clases = [...new Map(puntos.map((p) => [String(p.grupoId), p.grupo]))]
     .sort((a, b) => a[1].localeCompare(b[1], 'es'));
-  $: resaltados = clase ? puntos.filter((p) => String(p.grupoId) === clase).length : 0;
+  $: paletaClases = new Map(clases.map(([id], i) => [id, coloresClase[i % coloresClase.length]]));
+  $: abiertosPorClase = grupos.filter((grupo) =>
+    grupo.miembros.some((p) => clasesMarcadas.includes(String(p.grupoId)))).map((grupo) => grupo.cluster);
+  $: abiertos = [...new Set([...abiertosManual, ...abiertosPorClase])];
+  $: resaltados = puntos.filter((p) => clasesMarcadas.includes(String(p.grupoId))).length;
   $: nodos = simular(grupos, abiertos, indiceEje);
   $: nodoActivo = nodos.find((nodo) => nodo.id === elegido);
 
 
   function reiniciar() {
-    abiertos = [];
-    clase = '';
+    abiertosManual = [];
+    clasesMarcadas = [];
     elegido = '';
   }
 
@@ -75,22 +80,20 @@
     return nodos;
   }
 
-  function marcarClase(id) {
-    clase = id;
+  function marcarClase(id, marcada) {
+    clasesMarcadas = marcada ? [...clasesMarcadas, id] : clasesMarcadas.filter((clave) => clave !== id);
     elegido = '';
-    abiertos = id ? grupos.filter((grupo) =>
-      grupo.miembros.some((p) => String(p.grupoId) === id)).map((grupo) => grupo.cluster) : [];
   }
 
-  function atenuado(nodo, id) {
-    if (!id) return false;
-    if (nodo.miembros) return !nodo.miembros.some((p) => String(p.grupoId) === id);
-    return String(nodo.grupoId) !== id;
+  function atenuado(nodo, marcadas) {
+    if (!marcadas.length) return false;
+    if (nodo.miembros) return !nodo.miembros.some((p) => marcadas.includes(String(p.grupoId)));
+    return !marcadas.includes(String(nodo.grupoId));
   }
 
   function activar(nodo) {
     if (nodo.miembros) {
-      abiertos = [...new Set([...abiertos, nodo.cluster])];
+      abiertosManual = [...new Set([...abiertosManual, nodo.cluster])];
       elegido = '';
     } else {
       elegido = nodo.id;
@@ -104,16 +107,21 @@
       {#each motivos as [clave, nombre] (clave)}<option value={clave}>{nombre}</option>{/each}
     </select>
   </label>
-  <label>Resaltar clase
-    <select value={clase} onchange={(e) => marcarClase(e.currentTarget.value)}>
-      <option value="">Ninguna</option>
-      {#each clases as [id, nombre] (id)}<option value={id}>{nombre}</option>{/each}
-    </select>
-  </label>
   <button type="button" class="secundario" disabled={!abiertos.length} onclick={reiniciar}>Contraer todas</button>
 </div>
 
-{#if clase}<p role="status">{resaltados} perfiles de la clase resaltados en {abiertos.length} clústeres abiertos.</p>{/if}
+<fieldset class="leyenda-clases">
+  <legend>Resaltar clases</legend>
+  {#each clases as [id, nombre] (id)}
+    <label class:marcada={clasesMarcadas.includes(id)}>
+      <input type="checkbox" checked={clasesMarcadas.includes(id)}
+        onchange={(e) => marcarClase(id, e.currentTarget.checked)} />
+      <span class="cuadro-clase" style:background={paletaClases.get(id)} aria-hidden="true"></span>
+      <span>{nombre}</span>
+    </label>
+  {/each}
+</fieldset>
+{#if clasesMarcadas.length}<p class="nota" role="status">{resaltados} perfiles resaltados · {clasesMarcadas.length} clases seleccionadas.</p>{/if}
 
 <p class="nota">Eje X: entregas afectadas por el motivo elegido. Eje Y: entregas con alguna dificultad. Ambos se expresan sobre las entregas observadas. El área distingue el volumen del clúster o, al abrirlo, las entregas en dificultad por perfil. Las fuerzas separan las burbujas cercanas.</p>
 
@@ -147,8 +155,9 @@
         }}>
         <title>{etiqueta} · {porcentaje(nodo.vector[indiceEje] ?? 0)} para el motivo · {porcentaje(nodo.proporcion)} en dificultad</title>
         <circle cx={nodo.x} cy={nodo.y} r={nodo.radio} fill={colores[nodo.cluster]}
-          opacity={atenuado(nodo, clase) ? .2 : .9}
-          stroke={nodo === nodoActivo || (clase && !atenuado(nodo, clase)) ? '#2f241d' : '#fff'}
+          opacity={atenuado(nodo, clasesMarcadas) ? .2 : .9}
+          stroke={nodo === nodoActivo ? '#2f241d' :
+            clasesMarcadas.includes(String(nodo.grupoId)) ? paletaClases.get(String(nodo.grupoId)) : '#fff'}
           stroke-width="2" />
         {#if nodo.miembros}
           <text class="cantidad" x={nodo.x} y={nodo.y + 4} text-anchor="middle">{nodo.miembros.length}</text>
@@ -168,11 +177,10 @@
 
 <div class="acciones">
   {#each grupos as grupo (grupo.id)}
-    <button type="button" class="secundario" aria-pressed={abiertos.includes(grupo.cluster)} onclick={() => {
+    <button type="button" class="secundario" aria-pressed={abiertos.includes(grupo.cluster)} disabled={abiertosPorClase.includes(grupo.cluster)} onclick={() => {
       if (abiertos.includes(grupo.cluster)) {
-        abiertos = abiertos.filter((id) => id !== grupo.cluster);
+        abiertosManual = abiertosManual.filter((id) => id !== grupo.cluster);
         elegido = '';
-        clase = '';
       } else activar(grupo);
     }}>
       <span class="marca" style:background={colores[grupo.cluster]}></span>
@@ -182,6 +190,13 @@
 </div>
 
 <style>
+  .leyenda-clases { display:flex; flex-wrap:wrap; gap:4px 12px; border:0; margin:8px 0; padding:0; }
+  .leyenda-clases legend { padding:0; margin-bottom:3px; font-size:.8rem; font-weight:600; }
+  .leyenda-clases label { display:inline-flex; gap:4px; align-items:center; cursor:pointer; font-size:.8rem; }
+  .leyenda-clases input { margin:0; accent-color:#934621; }
+  .cuadro-clase { width:6px; height:6px; flex:0 0 6px; opacity:.3; }
+  .marcada .cuadro-clase { opacity:1; }
+
   svg { display:block; width:min(100%, 800px); min-width:360px; }
   text { font:11px system-ui; fill:#4b3a30; }
   .cantidad { fill:white; font-weight:700; pointer-events:none; }
