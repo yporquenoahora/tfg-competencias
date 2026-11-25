@@ -81,6 +81,9 @@
       Number(c.imparticionId) === Number(imparticionElegida) &&
       Boolean(imparticionElegida),
   );
+  $: if (!configuracionEvaluacion && configuracionesDelModulo.length === 1) {
+    configuracionEvaluacion = String(configuracionesDelModulo[0].id);
+  }
   $: idsIndicadoresGrupo = new Set(configuracionesDelModulo
     .flatMap((configuracion) => (configuracion.indicadores ?? []).map((item) => Number(item.indicadorId))));
   $: indicadoresGrupo = competencias.flatMap(indicadoresDe).filter((item) => idsIndicadoresGrupo.has(Number(item.id)));
@@ -475,6 +478,7 @@
     </nav>
 
     <div class="contenido-panel">
+      {#if vistaActiva !== 'curso'}
       <header class="contexto-app">
         <div class="contexto-titulo">
           <h1>{vista.nombre}</h1>
@@ -515,6 +519,7 @@
         </div>
         {/if}
       </header>
+      {/if}
 
       {#if creandoGrupo}
         <section class="panel">
@@ -605,6 +610,8 @@
               {mensajeValoracion}
               {errorValoracion}
               {seleccionarEstudiante}
+              gruposDisponibles={grupos}
+              abrirHistorial={(fila, alumnoId) => abrirRevision(fila, desde, hasta, alumnoId)}
               actualizarSeguimiento={cargarSeguimiento}
               {recuperarConfiguracion}
               {guardarValoracion}
@@ -659,7 +666,8 @@
         <div hidden={panelGrupo !== 'perfiles'}>
         {#if imparticionElegida}
           {#key imparticionElegida}
-            <PerfilesGrupo perfiles={seguimiento?.perfiles ?? []} {estudiantes}
+            <PerfilesGrupo abrir={(id) => { void seleccionarEstudiante(id); vistaActiva = 'evaluacion'; }}
+              perfiles={seguimiento?.perfiles ?? []} {estudiantes}
               imparticionId={imparticionElegida} indicadores={indicadoresGrupo}
               actualizado={async () => {
                 await Promise.all([cargarSeguimiento(), seleccionarEstudiante(estudianteElegido)]);

@@ -235,6 +235,8 @@ En **Alumno → Nueva valoración → Ejercicio y evidencia**, puedes reutilizar
 
 `server/demo/recorridos-demo.json` contiene cinco grupos ficticios con dos ejercicios por impartición, 20 estudiantes por grupo, niveles y comentarios por ejercicio, refuerzos y un caso sin observaciones en cada grupo. Desde `server`, ejecuta `node scripts/preparar-demo.mjs --recorridos` para crear un escenario identificado como «Recorridos · Demo» junto al escenario anterior. Si ya existe, el comando conserva los datos guardados.
 
+Para simular de septiembre a junio, ejecuta `node scripts/preparar-demo.mjs --curso-completo` desde `server`. Se añaden cinco grupos identificados con «Curso completo · Demo» y observaciones quincenales. En **Curso → Escenarios de demo → Ver simulación de curso completo** puedes aislarlos. Si abres un alumno en una impartición distinta a aquella en la que fue valorado, la ficha ofrece un acceso directo a las otras imparticiones con historial.
+
 ### Trazabilidad curricular y programación didáctica
 
 El currículo se almacena como **módulo → resultado de aprendizaje → criterio de evaluación**. Cada CE pertenece a un RA. La tabla `IndicadorCriterio` relaciona indicadores de seguimiento con CE y las vistas filtran las asociaciones por el currículo de la impartición activa. Los vínculos se dan de alta mediante `POST /api/indicadores/:id/criterios` o se preparan en la carga sintética. Son asociaciones pedagógicas orientativas.

@@ -833,6 +833,7 @@ app.get('/api/imparticiones/:id/seguimiento', async (req, res) => {
     }
 
 
+    const variaciones = new Map();
     const dificultades = [];
     const atencionesIniciales = [];
 
@@ -841,6 +842,10 @@ app.get('/api/imparticiones/:id/seguimiento', async (req, res) => {
 
       // Ya están ordenados del más reciente al más antiguo.
       const [ultima, anterior] = registros;
+
+      if (anterior && (!inicio || ultima.fecha >= inicio)) {
+        variaciones.set(ultima.estudianteId, (variaciones.get(ultima.estudianteId) ?? 0) + ultima.nivel - anterior.nivel);
+      }
 
       if ((inicio && ultima.fecha < inicio) || ultima.nivel > 2) continue;
 
@@ -940,7 +945,13 @@ app.get('/api/imparticiones/:id/seguimiento', async (req, res) => {
       },
 
       periodo: { desde: req.query.desde ?? null, hasta: req.query.hasta ?? null },
-      perfiles: agruparPerfiles(estudiantes, porIndicador),
+      perfiles: agruparPerfiles(estudiantes, porIndicador).map((perfil) => ({
+        ...perfil, alumnos: perfil.alumnos.map((alumno) => {
+          const cambio = variaciones.get(alumno.id);
+          return { ...alumno, tendencia: cambio == null ? 'insuficiente' :
+            cambio > 0 ? 'mejora' : cambio < 0 ? 'retroceso' : 'estable' };
+        }),
+      })),
       porIndicador: porIndicador.map(({ alumnosObservados, ...fila }) => fila),
       sinObservaciones: estudiantes.filter((item) => !estudiantesObservados.has(item.id))
         .map(({ id, nombre }) => ({ id, nombre })),

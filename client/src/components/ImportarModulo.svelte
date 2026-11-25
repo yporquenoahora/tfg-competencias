@@ -76,7 +76,8 @@
 </script>
 
 <section class="panel">
-  <h2>Añadir un módulo al grupo</h2>
+  <h2>Asignar módulo</h2>
+  <p><strong>Grupo de destino: {grupo.nombre}</strong> · {grupo.curso}. Puedes cambiarlo en «Grupo actual».</p>
   <p>Módulos disponibles para <strong>{grupo.ciclo}</strong>. Al añadir un módulo, sus resultados de aprendizaje y criterios de evaluación quedan disponibles para el seguimiento.</p>
 
   {#if cargando}
@@ -143,7 +144,7 @@
           <div class="cabecera">
             <h3>{seleccionado.nombre}</h3>
             <button type="button" disabled={!grupo || guardando} onclick={añadirModulo}>
-              {guardando ? 'Añadiendo…' : yaAñadido ? 'Activar módulo' : 'Añadir al grupo'}
+              {guardando ? 'Añadiendo…' : yaAñadido ? 'Activar módulo' : `Añadir a ${grupo.nombre}` }
             </button>
           </div>
           {#if !grupo}<p>El grupo debe estar disponible para añadir el módulo.</p>{/if}

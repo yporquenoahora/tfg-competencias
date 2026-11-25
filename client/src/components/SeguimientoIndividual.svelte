@@ -42,6 +42,13 @@
     export let guardandoValoracion = false;
     export let mensajeValoracion = '';
     export let errorValoracion = '';
+    export let gruposDisponibles = [];
+    export let abrirHistorial = () => {};
+    $: otrasImparticiones = [...new Map(historial.filter((v) =>
+        v.imparticion && Number(v.imparticionId) !== Number(imparticionElegida))
+        .map((v) => [v.imparticionId, v.imparticion])).values()]
+        .filter((i) => gruposDisponibles.some((g) => g.id === i.grupoId));
+
     export let seleccionarEstudiante;
     export let actualizarSeguimiento = () => {};
     export let abrirCatalogo;
@@ -879,6 +886,16 @@
                     {:else if errorHistorial}
                         <p class="error" role="alert">{errorHistorial}</p>
                     {:else}
+                        {#if !historialModulo.length && otrasImparticiones.length}
+                            <p>Este alumno tiene valoraciones en otras imparticiones:</p>
+                            <ul>
+                                {#each otrasImparticiones as fila (fila.id)}
+                                    <li><button class="secundario" type="button" onclick={() => abrirHistorial(fila, Number(estudianteElegido))}>
+                                        {gruposDisponibles.find((g) => g.id === fila.grupoId)?.nombre} · {fila.nombreModulo}
+                                    </button></li>
+                                {/each}
+                            </ul>
+                        {/if}
                         <Evolucion
                             {historial}
                             imparticionId={imparticionElegida}

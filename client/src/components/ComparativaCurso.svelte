@@ -1,5 +1,8 @@
 <script>
   import { construirSeries } from '../lib/seriesCurso.js';
+  export let cursos = [];
+  export let curso = '';
+  export let cambiarCurso = () => {};
   export let filas = [];
   export let periodos = [];
   export let quincena = '';
@@ -31,7 +34,12 @@
 {#if periodo}
   <section class="comparativa" aria-label="Evolución por grupos, módulos y alumnos">
     <div class="cabecera">
-      <h3>Evolución del curso</h3>
+      <h1>Evolución del curso</h1>
+      <label>Curso académico
+        <select value={curso} onchange={(e) => cambiarCurso(e.currentTarget.value)}>
+          {#each cursos as item (item)}<option value={item}>{item}</option>{/each}
+        </select>
+      </label>
       <div class="modos" aria-label="Comparar por">
         {#each modos as [clave, etiqueta] (clave)}
           <button type="button" aria-pressed={modo === clave}
@@ -117,10 +125,11 @@
 
 <style>
   .comparativa { background: #262328; color: #f8f4ed; border-radius: 12px; padding: 16px; margin-block: 16px; }
-  h3, p, small { color: inherit; margin-block: 0; }
+  h1, p, small { color: inherit; margin-block: 0; }
   .modos, .filtros { display:flex; gap:6px; flex-wrap:wrap; }
   .filtros { align-items:end; margin-block: 12px; }
   label { display:grid; gap:4px; font-size:.85rem; }
+  select, input[type="search"] { color:#251c18; background:#fffaf5; border:1px solid #a69892; border-radius:5px; padding:5px; }
   input { accent-color:#ffad69; min-width:0; }
   .unidad { font-size:.85rem; }
   svg { display:block; width:100%; min-width:600px; height:auto; max-height:240px; }

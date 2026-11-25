@@ -7,13 +7,14 @@
   export let indicadores = [];
   export let actualizado;
 
-  const colores = ['#96602d', '#89529b', '#287580', '#b23f42', '#5962aa', '#827020'];
   const nombrePerfil = (perfil) => perfil.clave === 'sin-evidencia' ? 'Evidencia insuficiente'
     : perfil.clave === 'sin-dificultad' ? 'Sin dificultad observada' : perfil.indicadores.join(' · ');
-  const colorPerfil = (perfil) => perfil.clave === 'sin-evidencia' ? '#746f68'
-    : perfil.clave === 'sin-dificultad' ? '#24745b' : colores[
-      perfil.clave.split(',').reduce((acumulado, id) => acumulado * 31 + Number(id), 0) % colores.length
-    ];
+  export let abrir = () => {};
+  const tendencias = {
+    mejora: ['Mejora', '#28755c'], estable: ['Sin cambio', '#456b98'],
+    retroceso: ['Retroceso', '#b74041'], insuficiente: ['Sin comparación', '#746f68'],
+  };
+  const tendencia = (alumno) => tendencias[alumno.tendencia] ?? tendencias.insuficiente;
 
   let seleccion = [];
   let perfilActivo = '';
@@ -63,20 +64,30 @@
 <section class="panel">
   <h2>Perfiles de dificultad y valoración en bloque</h2>
   {#if perfiles.length}
-    <p>Cada punto es un alumno. Selecciona un perfil para usar sus alumnos como punto de partida.</p>
-    <div class="perfiles" aria-label="Gráfica de perfiles de dificultad">
-      {#each perfiles as item (item.clave)}
-        <button class="perfil secundario" type="button" aria-pressed={perfilActivo === item.clave}
-          disabled={guardando} onclick={() => seleccionarPerfil(item)}>
-          <strong>{nombrePerfil(item)}</strong>
-          <span>{item.alumnos.length} {item.alumnos.length === 1 ? 'alumno' : 'alumnos'}</span>
-          <span class="puntos" aria-hidden="true" style:--color-perfil={colorPerfil(item)}>
-            {#each item.alumnos as alumno (alumno.id)}<i></i>{/each}
-          </span>
-        </button>
+    <div class="leyenda">
+      {#each Object.values(tendencias) as [etiqueta, color] (etiqueta)}
+        <span><i style:background={color}></i>{etiqueta}</span>
       {/each}
     </div>
-    <p class="nota">Los perfiles reúnen a quienes comparten la misma combinación de indicadores con nivel 1 o 2 en su última observación del periodo. «Evidencia insuficiente» agrupa a quienes no tienen observaciones en ese intervalo.</p>
+    <div class="perfiles" aria-label="Gráfica de perfiles de dificultad">
+      {#each perfiles as item (item.clave)}
+        <article class="perfil">
+          <strong>{nombrePerfil(item)} · {item.alumnos.length}</strong>
+          <div class="puntos">
+            {#each item.alumnos as alumno (alumno.id)}
+              {@const etiqueta = `${alumno.nombre} · ${tendencia(alumno)[0]} · ${alumno.observados} indicadores observados`}
+              <button class="punto" type="button" style:--color-alumno={tendencia(alumno)[1]}
+                aria-label={etiqueta} onclick={() => abrir(alumno.id)}>
+                <span aria-hidden="true">{etiqueta}</span>
+              </button>
+            {/each}
+          </div>
+          <button class="secundario" type="button" aria-pressed={perfilActivo === item.clave}
+            disabled={guardando || confirmar} onclick={() => seleccionarPerfil(item)}>Seleccionar perfil</button>
+        </article>
+      {/each}
+    </div>
+    <p class="nota">Los perfiles agrupan dificultades compartidas. El color compara las dos últimas valoraciones de los mismos indicadores y resume el cambio neto del alumno.</p>
     {#if perfil}
       <details>
         <summary>Alumnado y cobertura del perfil seleccionado</summary>
@@ -133,9 +144,16 @@
 <style>
   .perfiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 12px; }
   .perfil { text-align: left; display: grid; gap: 7px; align-content: start; }
-  .perfil[aria-pressed="true"] { outline: 2px solid #bb602a; }
+  .perfil button[aria-pressed="true"] { outline: 2px solid #bb602a; }
   .puntos { display: flex; flex-wrap: wrap; gap: 4px; }
-  .puntos i { width: 10px; height: 10px; border-radius: 50%; background: var(--color-perfil); }
+  .perfil { border: 1px solid #e5d8cb; padding: 8px; border-radius: 8px; }
+  .leyenda, .leyenda span { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .leyenda { margin-bottom:10px; font-size:.85rem; }
+  .leyenda i { width:10px; height:10px; border-radius:50%; }
+  .punto { position:relative; width:24px; height:24px; padding:0; background:transparent; }
+  .punto::before { content:''; display:block; margin:auto; width:13px; height:13px; border-radius:50%; background:var(--color-alumno); }
+  .punto span { display:none; pointer-events:none; position:absolute; z-index:4; left:0; bottom:100%; width:max-content; max-width:210px; white-space:normal; background:#2b2421; color:white; border-radius:5px; padding:6px 8px; }
+  .punto:hover span, .punto:focus-visible span { display:block; }
   fieldset { border: 1px solid #d9bda8; border-radius: 7px; display: grid; gap: 8px; }
   .lista-alumnos { display: grid; gap: 5px; max-height: 145px; overflow: auto; }
   .lista-alumnos input { width: auto; }

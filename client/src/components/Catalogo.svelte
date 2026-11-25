@@ -128,13 +128,10 @@
     </p>{:else if !competencias.length}<p>No hay competencias registradas.</p>
   {:else}<div class="lista">
       {#each competencias as c (c.id)}
-        <article class="registro">
+        <article class="registro ficha-compacta">
           <div class="cabecera">
             <div>
               <h3>{c.nombre}</h3>
-              {#if c.descripcion}<p>{c.descripcion}</p>{/if}<small
-                >Fuente: {c.fuente?.nombre ?? 'Sin especificar'}</small
-              >
             </div>
             <span class="contador"
               >{indicadores(c).filter((i) => seleccionados.includes(i.id))
@@ -161,6 +158,10 @@
             >
           </div>
           {#if expandidas.includes(c.id)}<div class="dimensiones">
+              {#if c.descripcion}<p>{c.descripcion}</p>{/if}<small
+                >Fuente: {c.fuente?.nombre ?? 'Sin especificar'}</small
+              >
+
               {#each c.dimensiones ?? [] as d (d.id)}<div class="dimension">
                   <h4>{d.nombre}</h4>
                   {#if d.descripcion}<p>
@@ -234,3 +235,12 @@
       {mensaje}
     </p>{/if}{#if errorLocal}<p class="error" role="alert">{errorLocal}</p>{/if}
 </section>
+
+<style>
+  .ficha-compacta { margin:0; padding:9px 12px; display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:6px 12px; }
+  .ficha-compacta h3 { margin:0; font-size:1rem; }
+  .ficha-compacta .acciones { margin:0; gap:5px; }
+  .ficha-compacta .acciones button { padding:5px 8px; }
+  .ficha-compacta .dimensiones { grid-column:1/-1; }
+  @media(max-width:650px) { .ficha-compacta { grid-template-columns:1fr; } }
+</style>

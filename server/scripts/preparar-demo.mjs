@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import { extenderCurso } from './curso-completo-demo.mjs';
 import { prisma } from '../src/db.js';
 import { catalogoCurricular } from '../src/catalogoCurricular.js';
 
@@ -6,10 +7,11 @@ const { curso, grupos } = JSON.parse(await readFile(
   new URL('../demo/recorridos-demo.json', import.meta.url), 'utf8',
 ));
 
-const sufijoGrupo = process.argv.includes('--recorridos') ? ' · Recorridos · Demo' : ' · Demo';
+const cursoCompleto = process.argv.includes('--curso-completo');
+const sufijoGrupo = cursoCompleto ? ' · Curso completo · Demo' : process.argv.includes('--recorridos') ? ' · Recorridos · Demo' : ' · Demo';
 
 async function preparar() {
-  for (const { clave, grupo, ciclo, modulo: codigo, indicador: descriptor, alumnos, ejercicios } of grupos) {
+  for (const { clave, grupo, ciclo, modulo: codigo, indicador: descriptor, alumnos, ejercicios } of (cursoCompleto ? extenderCurso(grupos, curso) : grupos)) {
     const ficha = [...catalogoCurricular.values()].find(
       (m) => m.codigo === codigo && m.ofertas.some((o) => o.ciclo === ciclo),
     );
@@ -83,7 +85,7 @@ async function preparar() {
         }
       }
       return true;
-    }, { timeout: 30000 });
+    }, { timeout: cursoCompleto ? 90000 : 30000 });
     console.log(`${grupo} · ${creado ? 'datos sintéticos preparados' : 'ya preparado'}`);
   }
 }

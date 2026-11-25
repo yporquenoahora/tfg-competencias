@@ -15,7 +15,7 @@
   let error = '';
   let cargando = false;
   let peticion = 0;
-  let mostrarDemo = false;
+  let filtroDemo = '';
   let formularioHito = false;
   let imparticionHito = '';
   let fechaHito = '';
@@ -31,7 +31,7 @@
   $: void cargar(curso);
   $: periodos = datos ? calcularPeriodos(datos.inicio, datos.fin) : [];
   $: visibles = quincena === '' ? periodos : periodos.filter((p) => String(p.indice) === quincena);
-  $: filasVisibles = datos?.filas.filter((fila) => !mostrarDemo || fila.grupo.endsWith('· Demo')) ?? [];
+  $: filasVisibles = datos?.filas.filter((fila) => !filtroDemo || fila.grupo.endsWith(filtroDemo)) ?? [];
   $: hitosVisibles = filasVisibles.flatMap((fila) =>
     (fila.hitos ?? []).filter((hito) => quincena === '' || String(hito.quincena) === quincena)
       .map((hito) => ({ ...hito, fila })),
@@ -54,7 +54,7 @@
     const version = ++peticion;
     datos = null;
     quincena = '';
-    mostrarDemo = false;
+    filtroDemo = '';
     formularioHito = false;
     errorHito = '';
     avisoHito = '';
@@ -132,62 +132,29 @@
   }
 
   function escenario(indice) {
-    mostrarDemo = true;
+    filtroDemo = '· Demo';
     quincena = String(indice);
   }
 </script>
 
-<section class="panel">
-  <h2>Evolución de los grupos</h2>
-  {#if cursos.length}
-    <div class="revision-periodo">
-      <label>Curso académico
-        <select value={curso} onchange={(e) => (curso = e.currentTarget.value)}>
-          {#each cursos as item (item)}<option value={item}>{item}</option>{/each}
-        </select>
-      </label>
-    </div>
-  {/if}
-
+<section class="panel curso-compacto">
   {#if cargando}<p role="status">Cargando seguimiento…</p>
   {:else if error}
     <p class="error" role="alert">{error}</p>
     <button class="secundario" onclick={() => cargar(curso)}>Reintentar</button>
   {:else if datos?.filas.length}
+    <ComparativaCurso filas={filasVisibles} {periodos} {quincena} seleccionar={(valor) => (quincena = valor)} {abrir}
+      {cursos} {curso} cambiarCurso={(valor) => (curso = valor)} />
     {#if disponiblesDemo}
-      <div class="acciones" aria-label="Escenarios de demostración">
+      <details class="escenarios"><summary>Escenarios de demo</summary><div class="acciones">
         <button class="secundario" onclick={() => escenario(0)}>Ver dificultad compartida</button>
         <button class="secundario" onclick={() => escenario(1)}>Ver evolución tras el refuerzo</button>
-        <button class="secundario" onclick={() => { mostrarDemo = false; quincena = ''; }}>Reiniciar vista</button>
-      </div>
+        {#if datos.filas.some((fila) => fila.grupo.endsWith('· Curso completo · Demo'))}
+          <button class="secundario" onclick={() => { filtroDemo = '· Curso completo · Demo'; quincena = ''; }}>Ver simulación de curso completo</button>
+        {/if}
+        <button class="secundario" onclick={() => { filtroDemo = ''; quincena = ''; }}>Reiniciar vista</button>
+      </div></details>
     {/if}
-    <div class="acciones">
-      <button type="button" onclick={abrirFormularioHito} disabled={formularioHito}>Añadir hito de revisión</button>
-    </div>
-    {#if formularioHito}
-      <form class="formulario" onsubmit={guardarHito}>
-        <label for="hito-imparticion">Grupo y módulo</label>
-        <select id="hito-imparticion" bind:value={imparticionHito} required>
-          {#each filasVisibles as fila (fila.id)}
-            <option value={String(fila.id)}>{fila.grupo} · {fila.modulo}</option>
-          {/each}
-        </select>
-        <label for="hito-fecha">Fecha de revisión</label>
-        <input id="hito-fecha" type="date" bind:value={fechaHito} min={periodos[0]?.desde} max={periodos.at(-1)?.hasta} required />
-        <label for="hito-titulo">Qué revisar</label>
-        <input id="hito-titulo" bind:value={tituloHito} placeholder="Comprobar la validación XML antes de la entrega" maxlength="120" required />
-        <label for="hito-nota">Nota para la revisión</label>
-        <textarea id="hito-nota" bind:value={notaHito} rows="2" maxlength="500"></textarea>
-        <div class="acciones">
-          <button type="submit" disabled={guardandoHito}>Guardar hito</button>
-          <button type="button" class="secundario" onclick={() => (formularioHito = false)} disabled={guardandoHito}>Cancelar</button>
-        </div>
-      </form>
-    {/if}
-    {#if errorHito}<p class="error" role="alert">{errorHito}</p>{/if}
-    {#if avisoHito}<p class="exito" role="status">{avisoHito}</p>{/if}
-
-    <ComparativaCurso filas={filasVisibles} {periodos} {quincena} seleccionar={(valor) => (quincena = valor)} {abrir} />
     <details>
       <summary>Ver perfiles y evolución de un grupo</summary>
       <GraficoCurso filas={filasVisibles} periodos={visibles} {abrir} />
@@ -223,6 +190,33 @@
     </div>
     </details>
     <h3>Hitos de revisión</h3>
+    <div class="acciones">
+      <button type="button" onclick={abrirFormularioHito} disabled={formularioHito}>Añadir hito de revisión</button>
+    </div>
+    {#if formularioHito}
+      <form class="formulario" onsubmit={guardarHito}>
+        <label for="hito-imparticion">Grupo y módulo</label>
+        <select id="hito-imparticion" bind:value={imparticionHito} required>
+          {#each filasVisibles as fila (fila.id)}
+            <option value={String(fila.id)}>{fila.grupo} · {fila.modulo}</option>
+          {/each}
+        </select>
+        <label for="hito-fecha">Fecha de revisión</label>
+        <input id="hito-fecha" type="date" bind:value={fechaHito} min={periodos[0]?.desde} max={periodos.at(-1)?.hasta} required />
+        <label for="hito-titulo">Qué revisar</label>
+        <input id="hito-titulo" bind:value={tituloHito} placeholder="Comprobar la validación XML antes de la entrega" maxlength="120" required />
+        <label for="hito-nota">Nota para la revisión</label>
+        <textarea id="hito-nota" bind:value={notaHito} rows="2" maxlength="500"></textarea>
+        <div class="acciones">
+          <button type="submit" disabled={guardandoHito}>Guardar hito</button>
+          <button type="button" class="secundario" onclick={() => (formularioHito = false)} disabled={guardandoHito}>Cancelar</button>
+        </div>
+      </form>
+    {/if}
+    {#if errorHito}<p class="error" role="alert">{errorHito}</p>{/if}
+    {#if avisoHito}<p class="exito" role="status">{avisoHito}</p>{/if}
+
+
     {#if hitosVisibles.length}
       <ul class="lista lista-hitos">
         {#each hitosVisibles as hito (hito.id)}
@@ -244,7 +238,11 @@
         {/each}
       </ul>
     {:else}<p>Este periodo todavía no tiene hitos programados.</p>{/if}
-  {:else}<p>Añade un módulo a un grupo para consultar su evolución.</p>{/if}
+  {:else}<label>Curso académico
+    <select value={curso} onchange={(e) => (curso = e.currentTarget.value)}>
+      {#each cursos as item (item)}<option value={item}>{item}</option>{/each}
+    </select>
+    </label><p>Añade un módulo a un grupo para consultar su evolución.</p>{/if}
   {#if datos?.gruposSinModulo?.length}
     <details>
       <summary>Grupos sin módulo asignado ({datos.gruposSinModulo.length})</summary>
@@ -255,6 +253,8 @@
 </section>
 
 <style>
+  .curso-compacto { padding:12px; }
+  .escenarios { margin:8px 0; }
   .timeline th, .timeline td { min-width: 80px; }
   .timeline th:first-child { min-width: 185px; position: sticky; left: 0; z-index: 1; }
   .timeline small { display: block; margin-top: 4px; }
