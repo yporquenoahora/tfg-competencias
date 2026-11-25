@@ -1,4 +1,5 @@
 <script>
+  import FuerzaDificultades from './FuerzaDificultades.svelte';
   import { api } from '../lib/api.js';
   import { analizarAtascos } from '../lib/atascos.js';
   export let curso = '';
@@ -7,15 +8,12 @@
   let grupo = '';
   let cargando = true;
   let error = '';
-  let cluster = null;
   let solicitud = 0;
-  const colores = ['#237d71','#b34b2d','#6554a0'];
   $: void cargar(curso);
   $: grupos = [...new Map((datos?.filas ?? []).map((v) => [v.imparticion.grupo.id, v.imparticion.grupo.nombre]))];
   $: resultado = analizarAtascos((datos?.filas ?? []).filter((v) =>
     !grupo || String(v.imparticion.grupo.id) === grupo), datos?.motivos ?? [], motivo);
-  $: gruposCluster = [...new Set(resultado.puntos.map((p) => p.cluster))].sort();
-  $: maxCobertura = Math.max(12, ...resultado.puntos.map((p) => p.cobertura));
+
 
   async function cargar(valor) {
     const actual = ++solicitud;
@@ -28,7 +26,6 @@
       if (actual === solicitud) {
         datos = respuesta;
         grupo = '';
-        cluster = null;
       }
     } catch (fallo) {
       if (actual === solicitud) error = fallo.message;
@@ -37,12 +34,6 @@
     }
   }
 
-  function perfil(indice, puntos, motivos) {
-    const miembros = puntos.filter((p) => p.cluster === indice);
-    return motivos.map(([, nombre], i) => ({
-      nombre, media: miembros.reduce((suma, p) => suma + p.vector[i], 0) / miembros.length,
-    })).filter((m) => m.media > 0).sort((a,b) => b.media - a.media)[0]?.nombre ?? 'Sin motivo registrado';
-  }
 </script>
 
 <section class="panel">
@@ -61,7 +52,7 @@
         </select>
       </label>
       <label>Grupo
-        <select value={grupo} onchange={(e) => { grupo = e.currentTarget.value; cluster = null; }}>
+        <select value={grupo} onchange={(e) => { grupo = e.currentTarget.value; }}>
           <option value="">Todos los grupos</option>
           {#each grupos as [id, nombre] (id)}<option value={String(id)}>{nombre}</option>{/each}
         </select>
@@ -93,35 +84,8 @@
     <h3>Perfiles de dificultad · K-means</h3>
     <p>El motivo filtra la tabla. Los clústeres comparan todos los motivos del grupo seleccionado y requieren entregas en al menos tres unidades.</p>
     {#if resultado.puntos.length}
-      <div class="tabla-scroll">
-        <svg viewBox="0 0 560 232" role="img" aria-label="Clústeres por unidades observadas y proporción de entregas en dificultad">
-          {#each [0, .5, 1] as marca (marca)}
-            {@const y = 186 - marca * 166}
-            <line x1="54" x2="520" y1={y} y2={y} stroke="#d7c9bd" />
-            <text x="46" y={y + 4} text-anchor="end">{marca * 100}%</text>
-          {/each}
-          {#each resultado.puntos as p (p.id)}
-            <circle cx={54 + p.cobertura / maxCobertura * 466} cy={186 - p.proporcion * 166} r="5"
-              fill={colores[p.cluster]} opacity={cluster == null || p.cluster === cluster ? .8 : .12}>
-              <title>{p.grupo} · {p.cobertura} unidades · {Math.round(p.proporcion * 100)} % de entregas en dificultad</title>
-            </circle>
-          {/each}
-          {#each [0, Math.floor(maxCobertura / 2), maxCobertura] as marca (marca)}
-            <text x={54 + marca / maxCobertura * 466} y="203" text-anchor="middle">{marca}</text>
-          {/each}
-          <text x="287" y="223" text-anchor="middle">Unidades con entregas observadas</text>
-        </svg>
-      </div>
-      <div class="acciones">
-        {#each gruposCluster as indice (indice)}
-          <button type="button" class="secundario" aria-pressed={cluster === indice}
-            onclick={() => (cluster = cluster === indice ? null : indice)}>
-            <span class="marca" style:background={colores[indice]}></span>
-            {perfil(indice, resultado.puntos, datos.motivos)} · {resultado.puntos.filter((p) => p.cluster === indice).length} perfiles
-          </button>
-        {/each}
-      </div>
-      <p class="nota">Cada punto representa a un alumno en una impartición. Pueden superponerse. {resultado.sinCobertura} perfiles con cobertura insuficiente.</p>
+      <FuerzaDificultades puntos={resultado.puntos} motivos={datos.motivos} {motivo} />
+      <p class="nota">{resultado.sinCobertura} perfiles con cobertura insuficiente para agrupar.</p>
     {:else}<p>Faltan entregas en tres o más unidades por alumno para estimar los clústeres.</p>{/if}
   {:else}
     <p>Vincula valoraciones con evidencias de ejercicios que tengan una unidad de trabajo.</p>
@@ -134,10 +98,6 @@
   dt { font-size:.85rem; }
   dd { margin:4px 0 0; font-size:1.5rem; font-weight:700; }
   .impacto { max-height:380px; }
-  svg { display:block; width:min(100%, 710px); min-width:320px; }
-  svg text { font:11px system-ui; fill:#4b3a30; }
-  .marca { display:inline-block; width:.75em; height:.75em; border-radius:100%; }
-  button[aria-pressed=true] { outline:2px solid #a84b25; }
   @media(max-width:1100px), (pointer:coarse) and (max-width:1400px) {
     .cifras { grid-template-columns:1fr; }
   }
