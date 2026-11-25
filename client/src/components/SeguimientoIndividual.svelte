@@ -59,6 +59,15 @@
     export let evidenciaIdSeleccionada = ''; // Enlazar desde App.svelte
 
     // Carga dependiente del módulo, actividad y estudiante.
+    let unidadEjercicio = '';
+    let motivoDificultad = '';
+    let motivosDificultad = [];
+    async function cargarMotivos() {
+        try { motivosDificultad = await api('/motivos-seguimiento'); }
+        catch { motivosDificultad = []; }
+    }
+    void cargarMotivos();
+
     let modoEjercicio = 'ninguno';
     let tituloEjercicio = '';
     let descripcionEjercicio = '';
@@ -69,6 +78,8 @@
 
     function limpiarEjercicio() {
         modoEjercicio = 'ninguno';
+        unidadEjercicio = '';
+        motivoDificultad = '';
         tituloEjercicio = '';
         descripcionEjercicio = '';
         enlaceEjercicio = '';
@@ -89,11 +100,12 @@
         }
         const ejercicio = nueva ? {
             actividadId: actividadElegida ? Number(actividadElegida) : null,
+            unidad: !actividadElegida && unidadEjercicio ? Number(unidadEjercicio) : null,
             titulo: tituloEjercicio, descripcion: descripcionEjercicio, referencia: enlaceEjercicio,
         } : null;
         if (modoEjercicio !== 'existente') evidenciaIdSeleccionada = '';
         const contexto = [estudianteElegido, imparticionElegida];
-        if (await guardarValoracion(ejercicio) && contexto[0] === estudianteElegido && contexto[1] === imparticionElegida) {
+        if (await guardarValoracion(ejercicio, Number(nivelValoracion) <= 2 ? motivoDificultad || null : null) && contexto[0] === estudianteElegido && contexto[1] === imparticionElegida) {
             limpiarEjercicio();
             await cargarActividades(imparticionElegida);
         }
@@ -755,6 +767,15 @@
                             )?.descripcion ?? ''}
                         </p>
                     {/if}
+                    {#if nivelValoracion && Number(nivelValoracion) <= 2 && motivosDificultad.length}
+                      <div class="campo">
+                        <label for="motivo-dificultad">Motivo de dificultad (opcional)</label>
+                        <select id="motivo-dificultad" bind:value={motivoDificultad}>
+                            <option value="">Sin clasificar</option>
+                            {#each motivosDificultad as [clave, etiqueta] (clave)}<option value={clave}>{etiqueta}</option>{/each}
+                        </select>
+                      </div>
+                    {/if}
                     <details class="opciones-evidencia">
                         <summary
                             >Ejercicio y evidencia <span>(opcional)</span
@@ -801,6 +822,8 @@
                                 {#if !actividadElegida}
                                     <label for="titulo-ejercicio">Título del ejercicio</label>
                                     <input id="titulo-ejercicio" bind:value={tituloEjercicio} maxlength="150" />
+                                    <label for="ut-ejercicio">Unidad de trabajo (opcional)</label>
+                                    <input id="ut-ejercicio" type="number" min="1" max="99" bind:value={unidadEjercicio} />
                                 {/if}
                                 <label for="descripcion-ejercicio">Evaluación o evidencia del ejercicio</label>
                                 <textarea id="descripcion-ejercicio" bind:value={descripcionEjercicio} rows="2" maxlength="2000"></textarea>

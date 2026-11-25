@@ -39,7 +39,8 @@ export function registrarValoracion({
   nivel,
   observacion,
   evidenciaId,
-  ejercicio
+  ejercicio,
+  motivo
 }) {
   return api('/valoraciones', {
     method: 'POST',
@@ -50,7 +51,8 @@ export function registrarValoracion({
       nivel,
       observacion,
       evidenciaId,
-      ejercicio
+      ejercicio,
+      motivo
     })
   });
 }

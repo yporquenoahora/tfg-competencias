@@ -237,6 +237,14 @@ En **Alumno → Nueva valoración → Ejercicio y evidencia**, puedes reutilizar
 
 Para simular de septiembre a junio, ejecuta `node scripts/preparar-demo.mjs --curso-completo` desde `server`. Se añaden cinco grupos identificados con «Curso completo · Demo» y observaciones quincenales. En **Curso → Escenarios de demo → Ver simulación de curso completo** puedes aislarlos. Si abres un alumno en una impartición distinta a aquella en la que fue valorado, la ficha ofrece un acceso directo a las otras imparticiones con historial.
 
+### Dificultades comunes por unidad de trabajo
+
+Aplica las migraciones y ejecuta `node scripts/preparar-demo.mjs --unidades-lm` desde `server`. Crea tres grupos sintéticos de Lenguajes de Marcas (ASIR, DAM y DAW), con 20 alumnos por grupo y entregas de septiembre a junio en las 12 unidades de la programación aportada para DAW. La secuencia se reutiliza como escenario simulado de ASIR y DAM.
+
+En **Dificultades**, el filtro **Validación y comprobación** muestra 30 alumnos y 85 entregas afectadas de 680 observadas en 9 combinaciones de impartición y unidad (UT3, UT7 y UT9 en los tres grupos). Una entrega con varios indicadores bajos se cuenta una sola vez en los totales. Una ausencia de entrega queda fuera del denominador de evidencias observadas.
+
+La gráfica agrupa los perfiles alumno–impartición con K-means (hasta tres clústeres), usando para cada motivo su proporción de entregas afectadas sobre las observadas. Las coordenadas muestran unidades observadas y proporción total de entregas en dificultad. Se requieren observaciones en tres unidades para incluir un perfil. La clasificación del motivo se registra por el docente desde **Alumno**, al valorar un ejercicio. Los casos con valores 1 o 2 pueden clasificarse y los ejercicios nuevos admiten número de unidad.
+
 ### Trazabilidad curricular y programación didáctica
 
 El currículo se almacena como **módulo → resultado de aprendizaje → criterio de evaluación**. Cada CE pertenece a un RA. La tabla `IndicadorCriterio` relaciona indicadores de seguimiento con CE y las vistas filtran las asociaciones por el currículo de la impartición activa. Los vínculos se dan de alta mediante `POST /api/indicadores/:id/criterios` o se preparan en la carga sintética. Son asociaciones pedagógicas orientativas.

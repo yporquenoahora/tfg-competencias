@@ -1,0 +1,62 @@
+[
+  {
+    "numero": 1,
+    "titulo": "Introducción a los lenguajes de marcas",
+    "horas": 5
+  },
+  {
+    "numero": 2,
+    "titulo": "Estructura HTML de la aventura",
+    "horas": 10
+  },
+  {
+    "numero": 3,
+    "titulo": "Presentación y accesibilidad con CSS",
+    "horas": 10
+  },
+  {
+    "numero": 4,
+    "titulo": "Publicación y sindicación",
+    "horas": 5
+  },
+  {
+    "numero": 5,
+    "titulo": "Decisiones y estado con JavaScript y DOM",
+    "horas": 12
+  },
+  {
+    "numero": 6,
+    "titulo": "Representación de la historia en XML y JSON",
+    "horas": 8
+  },
+  {
+    "numero": 7,
+    "titulo": "Validación de historias con DTD y XSD",
+    "horas": 10
+  },
+  {
+    "numero": 8,
+    "titulo": "Transformación de documentos",
+    "horas": 10
+  },
+  {
+    "numero": 9,
+    "titulo": "Consulta y almacenamiento XML nativo",
+    "horas": 8
+  },
+  {
+    "numero": 10,
+    "titulo": "Intercambio con bases de datos relacionales",
+    "horas": 8
+  },
+  {
+    "numero": 11,
+    "titulo": "Configuración de un ERP para el proyecto",
+    "horas": 12
+  },
+  {
+    "numero": 12,
+    "titulo": "Integración final y catálogo de ejercicios",
+    "horas": 12
+  }
+]

@@ -3,6 +3,7 @@
   import { api } from './lib/api.js';
   import Catalogo from './components/Catalogo.svelte';
   import EditarContexto from './components/EditarContexto.svelte';
+  import AtascosCurso from './components/AtascosCurso.svelte';
   import TimelineCurso from './components/TimelineCurso.svelte';
   import AsientosGrupo from './components/AsientosGrupo.svelte';
   import PerfilesGrupo from './components/PerfilesGrupo.svelte';
@@ -29,12 +30,15 @@
   const panelesGrupo = [
     ['resumen', 'Monitorización'], ['perfiles', 'Perfiles y evaluación'], ['aula', 'Aula y matrículas'], ['datos', 'Datos de grupo y módulo'],
   ];
+  let cursoAtascos = '';
+  $: if (!cursoAtascos && grupo?.curso) cursoAtascos = grupo.curso;
   let vistaActiva = 'evaluacion';
   let rubricas = [];
   let errorRubricas = '';
   let evidenciaIdSeleccionada = '';
   let mensajeModulo = '';
   const vistas = [
+    { id: 'atascos', nombre: 'Dificultades', detalle: 'Relaciona dificultades comunes con entregas y unidades de trabajo.' },
     { id: 'curso', nombre: 'Curso · Evolución', detalle: 'Compara la cobertura y las dificultades de tus grupos por quincena.' },
     { id: 'evaluacion', nombre: 'Alumno', detalle: 'Consulta su evolución, registra observaciones y prepara refuerzos.' },
     { id: 'grupo', nombre: 'Grupo', detalle: 'Consulta las dificultades observadas en el grupo y abre el seguimiento de cada alumno.' },
@@ -391,7 +395,7 @@
     errorValoracion = '';
   }
 
-  async function guardarValoracion(ejercicio = null) {
+  async function guardarValoracion(ejercicio = null, motivo = null) {
     mensajeValoracion = '';
     errorValoracion = '';
     const estudianteId = Number(estudianteElegido);
@@ -429,6 +433,7 @@
         observacion: observacionValoracion.trim(),
         evidenciaId: ejercicio ? null : evidenciaId,
         ejercicio,
+        motivo,
       });
       observacionValoracion = '';
       nivelValoracion = '';
@@ -478,13 +483,13 @@
     </nav>
 
     <div class="contenido-panel">
-      {#if vistaActiva !== 'curso'}
+      {#if vistaActiva !== 'curso' && vistaActiva !== 'atascos'}
       <header class="contexto-app">
         <div class="contexto-titulo">
           <h1>{vista.nombre}</h1>
           <p>{vista.detalle}</p>
         </div>
-        {#if vistaActiva !== 'curso'}
+        {#if vistaActiva !== 'curso' && vistaActiva !== 'atascos'}
         <div class="contexto-controles">
           <div class="contexto-grupo">
             <label for="grupo-activo">Grupo actual</label>
@@ -623,6 +628,15 @@
             />
           {/if}
         </section>
+      {/if}
+
+      {#if vistaActiva === 'atascos'}
+        <label class="revision-periodo">Curso académico
+          <select value={cursoAtascos} onchange={(e) => (cursoAtascos = e.currentTarget.value)}>
+            {#each [...new Set(grupos.map((g) => g.curso))] as curso (curso)}<option value={curso}>{curso}</option>{/each}
+          </select>
+        </label>
+        {#if cursoAtascos}<AtascosCurso curso={cursoAtascos} />{/if}
       {/if}
 
       {#if vistaActiva === 'curso'}

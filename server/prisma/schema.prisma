@@ -159,6 +159,7 @@ model HitoRevision {
 }
 
 model Valoracion {
+  motivo        String?
   id            Int      @id @default(autoincrement())
   estudianteId  Int
   indicadorId   Int
@@ -243,6 +244,7 @@ model RubricaIndicador {
 }
 
 model Actividad {
+  unidad         Int?
   id             Int       @id @default(autoincrement())
   imparticionId  Int
   titulo         String

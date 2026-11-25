@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import { prepararUnidades } from './unidades-demo.mjs';
 import { extenderCurso } from './curso-completo-demo.mjs';
 import { prisma } from '../src/db.js';
 import { catalogoCurricular } from '../src/catalogoCurricular.js';
@@ -8,10 +9,11 @@ const { curso, grupos } = JSON.parse(await readFile(
 ));
 
 const cursoCompleto = process.argv.includes('--curso-completo');
-const sufijoGrupo = cursoCompleto ? ' · Curso completo · Demo' : process.argv.includes('--recorridos') ? ' · Recorridos · Demo' : ' · Demo';
+const demoUnidades = process.argv.includes('--unidades-lm');
+const sufijoGrupo = demoUnidades ? ' · UT LM · Demo' : cursoCompleto ? ' · Curso completo · Demo' : process.argv.includes('--recorridos') ? ' · Recorridos · Demo' : ' · Demo';
 
 async function preparar() {
-  for (const { clave, grupo, ciclo, modulo: codigo, indicador: descriptor, alumnos, ejercicios } of (cursoCompleto ? extenderCurso(grupos, curso) : grupos)) {
+  for (const { clave, grupo, ciclo, modulo: codigo, indicador: descriptor, alumnos, ejercicios } of (demoUnidades ? prepararUnidades(grupos, curso) : cursoCompleto ? extenderCurso(grupos, curso) : grupos)) {
     const ficha = [...catalogoCurricular.values()].find(
       (m) => m.codigo === codigo && m.ofertas.some((o) => o.ciclo === ciclo),
     );
@@ -60,8 +62,8 @@ async function preparar() {
       if (criterio) {
         await tx.indicadorCriterio.create({ data: { indicadorId: indicador.id, criterioId: criterio.id } });
       }
-      const practicas = await Promise.all(ejercicios.map(({ titulo, fecha }) => tx.actividad.create({
-        data: { imparticionId: imparticion.id, titulo, fechaPropuesta: new Date(fecha) },
+      const practicas = await Promise.all(ejercicios.map(({ titulo, fecha, unidad }) => tx.actividad.create({
+        data: { imparticionId: imparticion.id, titulo, unidad, fechaPropuesta: new Date(fecha) },
       })));
       for (const { codigo, nombre, valoraciones, refuerzo } of alumnos) {
         const estudiante = await tx.estudiante.upsert({
@@ -69,13 +71,13 @@ async function preparar() {
         });
         await tx.matricula.create({ data: { grupoId: nuevoGrupo.id, estudianteId: estudiante.id } });
         const base = { estudianteId: estudiante.id, imparticionId: imparticion.id, indicadorId: indicador.id };
-        for (const { ejercicio, nivel, observacion } of valoraciones) {
+        for (const { ejercicio, nivel, observacion, motivo } of valoraciones) {
           const fecha = new Date(ejercicios[ejercicio].fecha);
           const evidencia = await tx.evidencia.create({
             data: { actividadId: practicas[ejercicio].id, estudianteId: estudiante.id,
               descripcion: observacion, fechaRegistro: fecha },
           });
-          await tx.valoracion.create({ data: { ...base, evidenciaId: evidencia.id, nivel, fecha, observacion } });
+          await tx.valoracion.create({ data: { ...base, evidenciaId: evidencia.id, nivel, fecha, observacion, motivo } });
         }
         if (refuerzo) {
           await tx.planRefuerzo.create({

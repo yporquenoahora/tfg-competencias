@@ -1,3 +1,4 @@
+import { motivosSeguimiento } from './motivosSeguimiento.js';
 import { agruparPerfiles, compararQuincenas, intervalo, resumirIndicadores } from './periodos.js';
 
 import express from 'express';
@@ -409,9 +410,12 @@ app.post('/api/valoraciones', async (req, res) => {
       imparticionId,
       nivel,
       observacion,
-      evidenciaId, ejercicio
+      evidenciaId, ejercicio, motivo
     } = req.body ?? {};
 
+    if (motivo != null && !motivosSeguimiento.some(([clave]) => clave === motivo)) {
+      return res.status(400).json({ error: 'Motivo de dificultad no válido' });
+    }
     const ids = [estudianteId, indicadorId, imparticionId];
 
     if (!ids.every(id => Number.isInteger(id) && id > 0)) {
@@ -503,9 +507,9 @@ app.post('/api/valoraciones', async (req, res) => {
 
     let nuevaEvidencia = null;
     if (ejercicio != null) {
-      const { actividadId, titulo, descripcion, referencia } = ejercicio;
+      const { actividadId, titulo, descripcion, referencia, unidad } = ejercicio;
       const tituloValido = typeof titulo === 'string' && titulo.trim().length > 0 && titulo.trim().length <= 150;
-      if (evidenciaId != null || (actividadId == null ? !tituloValido : !Number.isSafeInteger(actividadId) || actividadId <= 0) ||
+      if ((unidad != null && (!Number.isInteger(unidad) || unidad < 1 || unidad > 99)) || evidenciaId != null || (actividadId == null ? !tituloValido : !Number.isSafeInteger(actividadId) || actividadId <= 0) ||
           typeof descripcion !== 'string' || !descripcion.trim() || descripcion.length > 2000 ||
           (referencia != null && (typeof referencia !== 'string' || referencia.length > 2000 ||
             (referencia.trim() && !/^https?:$/i.test(URL.parse(referencia.trim())?.protocol ?? ''))))) {
@@ -519,7 +523,7 @@ app.post('/api/valoraciones', async (req, res) => {
         descripcion: descripcion.trim(),
         referencia: referencia?.trim() || null,
         actividad: actividadId != null ? { connect: { id: actividadId } } :
-          { create: { titulo: titulo.trim(), imparticion: { connect: { id: imparticionId } } } },
+          { create: { titulo: titulo.trim(), unidad, imparticion: { connect: { id: imparticionId } } } },
       };
     }
 
@@ -532,6 +536,7 @@ app.post('/api/valoraciones', async (req, res) => {
         nivel,
         ...(rubricaId != null && { rubrica: { connect: { id: rubricaId } } }),
         descriptorAplicado,
+        motivo: nivel <= 2 ? motivo ?? null : null,
         observacion: observacion?.trim() || null,
         ...(nuevaEvidencia ? { evidencia: { create: nuevaEvidencia } }
           : evidenciaId != null ? { evidencia: { connect: { id: evidenciaId } } } : {}),
@@ -683,6 +688,36 @@ function resumirQuincenaAlumnos(pares) {
   }
   return [...resumen.values()];
 }
+
+app.get('/api/motivos-seguimiento', (req, res) => res.json(motivosSeguimiento));
+
+app.get('/api/curso/atascos', async (req, res) => {
+  const { curso } = req.query;
+  if (typeof curso !== 'string' || !/^\d{4}\/\d{4}$/.test(curso)) {
+    return res.status(400).json({ error: 'Selecciona un curso académico' });
+  }
+  try {
+    const datos = await prisma.valoracion.findMany({
+      where: { imparticion: { curso }, evidencia: { actividad: { unidad: { not: null } } } },
+      orderBy: [{ fecha: 'desc' }, { id: 'desc' }],
+      select: { estudianteId: true, indicadorId: true, nivel: true, motivo: true,
+        imparticion: { select: { id: true, nombreModulo: true, grupo: { select: { id: true, nombre: true } } } },
+        evidencia: { select: { id: true, actividad: { select: { unidad: true, titulo: true } } } },
+      },
+    });
+    const vistos = new Set();
+    const filas = datos.filter((v) => {
+      const clave = `${v.evidencia.id}/${v.indicadorId}`;
+      if (vistos.has(clave)) return false;
+      vistos.add(clave);
+      return true;
+    });
+    res.json({ motivos: motivosSeguimiento, filas });
+  } catch (error) {
+    console.error('Error al consultar dificultades comunes:', error);
+    res.status(500).json({ error: 'No se pudieron consultar las dificultades comunes' });
+  }
+});
 
 app.get('/api/curso/seguimiento', async (req, res) => {
   const { curso } = req.query;
