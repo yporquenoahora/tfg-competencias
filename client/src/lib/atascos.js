@@ -49,7 +49,7 @@ export function analizarAtascos(filas, motivos, motivo) {
     entregas.add(evidencia.id);
 
     const id = `${estudianteId}/${imparticion.id}`;
-    if (!alumnado.has(id)) alumnado.set(id, { id, grupo: imparticion.grupo.nombre, unidades: new Set(), entregas: new Set(), motivos: new Map(), bajas: new Set() });
+    if (!alumnado.has(id)) alumnado.set(id, { id, grupoId: imparticion.grupo.id, grupo: imparticion.grupo.nombre, unidades: new Set(), entregas: new Set(), motivos: new Map(), bajas: new Set() });
     const alumno = alumnado.get(id);
     alumno.unidades.add(unidad);
     alumno.entregas.add(evidencia.id);
@@ -69,7 +69,7 @@ export function analizarAtascos(filas, motivos, motivo) {
   const contextos = [...unidades.values()].filter((u) => u.afectados.size)
     .sort((a,b) => b.afectados.size - a.afectados.size || a.unidad - b.unidad);
   const puntos = [...alumnado.values()].filter((a) => a.unidades.size >= 3).map((a) => ({
-    id: a.id, grupo: a.grupo, cobertura: a.unidades.size, afectadas: a.bajas.size, entregas: a.entregas.size, proporcion: a.bajas.size / a.entregas.size,
+    id: a.id, grupoId: a.grupoId, grupo: a.grupo, cobertura: a.unidades.size, afectadas: a.bajas.size, entregas: a.entregas.size, proporcion: a.bajas.size / a.entregas.size,
     vector: motivos.map(([clave]) => (a.motivos.get(clave)?.size ?? 0) / a.entregas.size),
   }));
   return {
