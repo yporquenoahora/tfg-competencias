@@ -388,7 +388,7 @@ app.post('/api/valoraciones', async (req, res) => {
       imparticionId,
       nivel,
       observacion,
-      evidenciaId
+      evidenciaId, ejercicio
     } = req.body ?? {};
 
     const ids = [estudianteId, indicadorId, imparticionId];
@@ -480,17 +480,40 @@ app.post('/api/valoraciones', async (req, res) => {
       }
     }
 
+    let nuevaEvidencia = null;
+    if (ejercicio != null) {
+      const { actividadId, titulo, descripcion, referencia } = ejercicio;
+      const tituloValido = typeof titulo === 'string' && titulo.trim().length > 0 && titulo.trim().length <= 150;
+      if (evidenciaId != null || (actividadId == null ? !tituloValido : !Number.isSafeInteger(actividadId) || actividadId <= 0) ||
+          typeof descripcion !== 'string' || !descripcion.trim() || descripcion.length > 2000 ||
+          (referencia != null && (typeof referencia !== 'string' || referencia.length > 2000 ||
+            (referencia.trim() && !/^https?:$/i.test(URL.parse(referencia.trim())?.protocol ?? ''))))) {
+        return res.status(400).json({ error: 'Indica un ejercicio, una descripción y, si lo necesitas, un enlace HTTP o HTTPS válido' });
+      }
+      if (actividadId != null && !await prisma.actividad.findFirst({ where: { id: actividadId, imparticionId } })) {
+        return res.status(400).json({ error: 'El ejercicio no pertenece a esta impartición' });
+      }
+      nuevaEvidencia = {
+        estudiante: { connect: { id: estudianteId } },
+        descripcion: descripcion.trim(),
+        referencia: referencia?.trim() || null,
+        actividad: actividadId != null ? { connect: { id: actividadId } } :
+          { create: { titulo: titulo.trim(), imparticion: { connect: { id: imparticionId } } } },
+      };
+    }
+
     const { rubricaId, descriptorAplicado } = await descriptorValoracion(prisma, indicadorId, nivel);
     const valoracion = await prisma.valoracion.create({
       data: {
-        estudianteId,
-        indicadorId,
-        imparticionId,
+        estudiante: { connect: { id: estudianteId } },
+        indicador: { connect: { id: indicadorId } },
+        imparticion: { connect: { id: imparticionId } },
         nivel,
-        rubricaId,
+        ...(rubricaId != null && { rubrica: { connect: { id: rubricaId } } }),
         descriptorAplicado,
         observacion: observacion?.trim() || null,
-        evidenciaId: evidenciaId ?? null
+        ...(nuevaEvidencia ? { evidencia: { create: nuevaEvidencia } }
+          : evidenciaId != null ? { evidencia: { connect: { id: evidenciaId } } } : {}),
       }
     });
 
@@ -527,7 +550,8 @@ app.get('/api/estudiantes/:id/valoraciones', async (req, res) => {
       where: { estudianteId },
       include: {
         indicador: true,
-        imparticion: true
+        imparticion: true,
+        evidencia: { include: { actividad: true } }
       },
       orderBy: [
         { fecha: 'desc' },

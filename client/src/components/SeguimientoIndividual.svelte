@@ -51,6 +51,46 @@
     export let evidenciaIdSeleccionada = ''; // Enlazar desde App.svelte
 
     // Carga dependiente del módulo, actividad y estudiante.
+    let modoEjercicio = 'ninguno';
+    let tituloEjercicio = '';
+    let descripcionEjercicio = '';
+    let enlaceEjercicio = '';
+    let errorEjercicio = '';
+
+    $: limpiarEjercicio(estudianteElegido, imparticionElegida);
+
+    function limpiarEjercicio() {
+        modoEjercicio = 'ninguno';
+        tituloEjercicio = '';
+        descripcionEjercicio = '';
+        enlaceEjercicio = '';
+        errorEjercicio = '';
+    }
+
+    async function registrar() {
+        errorEjercicio = '';
+        const nueva = modoEjercicio === 'nueva';
+        if ((modoEjercicio === 'existente' && !evidenciaIdSeleccionada) ||
+            (nueva && ((!actividadElegida && !tituloEjercicio.trim()) || !descripcionEjercicio.trim()))) {
+            errorEjercicio = 'Selecciona una evidencia o completa el ejercicio y su evaluación.';
+            return;
+        }
+        if (nueva && enlaceEjercicio.trim() && !/^https?:$/i.test(URL.parse(enlaceEjercicio.trim())?.protocol ?? '')) {
+            errorEjercicio = 'El enlace debe empezar por http:// o https://.';
+            return;
+        }
+        const ejercicio = nueva ? {
+            actividadId: actividadElegida ? Number(actividadElegida) : null,
+            titulo: tituloEjercicio, descripcion: descripcionEjercicio, referencia: enlaceEjercicio,
+        } : null;
+        if (modoEjercicio !== 'existente') evidenciaIdSeleccionada = '';
+        const contexto = [estudianteElegido, imparticionElegida];
+        if (await guardarValoracion(ejercicio) && contexto[0] === estudianteElegido && contexto[1] === imparticionElegida) {
+            limpiarEjercicio();
+            await cargarActividades(imparticionElegida);
+        }
+    }
+
     let actividades = [];
     let evidencias = [];
     let actividadElegida = '';
@@ -676,10 +716,18 @@
                     {/if}
                     <details class="opciones-evidencia">
                         <summary
-                            >Actividad y evidencia <span>(opcional)</span
+                            >Ejercicio y evidencia <span>(opcional)</span
                             ></summary
                         >
                         <div class="campos-opcionales">
+                            <label for="modo-ejercicio">Qué quieres vincular</label>
+                            <select id="modo-ejercicio" bind:value={modoEjercicio} disabled={guardandoValoracion}>
+                                <option value="ninguno">Sin ejercicio vinculado</option>
+                                <option value="nueva">Registrar evaluación de un ejercicio</option>
+                                <option value="existente">Elegir evidencia ya guardada</option>
+                            </select>
+                            {#if modoEjercicio !== 'ninguno'}
+
                             <div class="campo">
                                 <label for="actividad-valoracion"
                                     >Actividad (opcional)</label
@@ -691,7 +739,7 @@
                                         !imparticionElegida}
                                 >
                                     <option value=""
-                                        >Sin actividad asociada</option
+                                        >{modoEjercicio === 'nueva' ? 'Crear un ejercicio' : 'Selecciona un ejercicio'}</option
                                     >
                                     {#each actividades as actividad (actividad.id)}
                                         <option value={String(actividad.id)}
@@ -708,6 +756,16 @@
                                     </p>
                                 {/if}
                             </div>
+                            {#if modoEjercicio === 'nueva'}
+                                {#if !actividadElegida}
+                                    <label for="titulo-ejercicio">Título del ejercicio</label>
+                                    <input id="titulo-ejercicio" bind:value={tituloEjercicio} maxlength="150" />
+                                {/if}
+                                <label for="descripcion-ejercicio">Evaluación o evidencia del ejercicio</label>
+                                <textarea id="descripcion-ejercicio" bind:value={descripcionEjercicio} rows="2" maxlength="2000"></textarea>
+                                <label for="enlace-ejercicio">Enlace a entrega o corrección (opcional)</label>
+                                <input id="enlace-ejercicio" type="url" bind:value={enlaceEjercicio} maxlength="2000" placeholder="https://…" />
+                            {:else}
                             <div class="campo">
                                 <label for="evidencia-valoracion"
                                     >Evidencia (opcional)</label
@@ -737,6 +795,9 @@
                                     </p>
                                 {/if}
                             </div>
+                            {/if}
+                            {/if}
+                            {#if errorEjercicio}<p class="error" role="alert">{errorEjercicio}</p>{/if}
                         </div>
                     </details>
                     <div class="campo">
@@ -753,7 +814,7 @@
                     <button
                         class="accion-primaria"
                         type="button"
-                        onclick={guardarValoracion}
+                        onclick={registrar}
                         disabled={guardandoValoracion ||
                             !estudianteElegido ||
                             !imparticionElegida ||
@@ -980,8 +1041,11 @@
                                                             <strong
                                                                 >Referencia:</strong
                                                             >
-                                                            {detalle.evidencia
-                                                                .referencia}
+                                                            {#if /^https?:$/i.test(URL.parse(detalle.evidencia.referencia)?.protocol ?? '')}
+                                                                <a href={detalle.evidencia.referencia} target="_blank" rel="noopener noreferrer">Abrir entrega o corrección</a>
+                                                            {:else}
+                                                                {detalle.evidencia.referencia}
+                                                            {/if}
                                                         </p>
                                                     {/if}
                                                 {:else}

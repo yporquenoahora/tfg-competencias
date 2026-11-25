@@ -229,6 +229,12 @@ Desde **Curso → Añadir hito de revisión**, elige el grupo y el módulo, una 
 
 El gráfico de **Curso** muestra una impartición cada vez. Las barras agrupan al alumnado según el balance de entradas y salidas del nivel de dificultad en los mismos indicadores respecto a la quincena anterior. La línea indica el porcentaje con alguna dificultad entre el alumnado observado. Una quincena sin datos se distingue de un 0 %. Las actividades que aparecen proceden de las evidencias vinculadas a observaciones del periodo. Los grupos sin módulo se muestran aparte. Un módulo del catálogo puede existir sin impartición, y requiere asociarse a un grupo para registrar seguimiento.
 
+### Ejercicios y recorridos de demostración
+
+En **Alumno → Nueva valoración → Ejercicio y evidencia**, puedes reutilizar una evidencia o evaluar un ejercicio nuevo o existente. Guarda la descripción de la evaluación y, opcionalmente, un enlace HTTP o HTTPS a la entrega. El historial permite abrir ese enlace. La gráfica usa las fechas de las observaciones.
+
+`server/demo/recorridos-demo.json` contiene cinco grupos ficticios con dos ejercicios por impartición, 20 estudiantes por grupo, niveles y comentarios por ejercicio, refuerzos y un caso sin observaciones en cada grupo. Desde `server`, ejecuta `node scripts/preparar-demo.mjs --recorridos` para crear un escenario identificado como «Recorridos · Demo» junto al escenario anterior. Si ya existe, el comando conserva los datos guardados.
+
 ### Trazabilidad curricular y programación didáctica
 
 El currículo se almacena como **módulo → resultado de aprendizaje → criterio de evaluación**. Cada CE pertenece a un RA. La tabla `IndicadorCriterio` relaciona indicadores de seguimiento con CE y las vistas filtran las asociaciones por el currículo de la impartición activa. Los vínculos se dan de alta mediante `POST /api/indicadores/:id/criterios` o se preparan en la carga sintética. Son asociaciones pedagógicas orientativas.

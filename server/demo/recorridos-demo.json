@@ -1,0 +1,1745 @@
+{
+  "curso": "2026/2027",
+  "grupos": [
+    {
+      "clave": "ASIR1",
+      "grupo": "1.º ASIR A",
+      "ciclo": "Administración de Sistemas Informáticos en Red",
+      "modulo": "0373",
+      "indicador": "Validar la estructura del XML antes de entregar",
+      "ejercicios": [
+        {
+          "titulo": "Validar el inventario XML de equipos",
+          "fecha": "2026-09-10T10:00:00Z"
+        },
+        {
+          "titulo": "Revisar un inventario con errores de esquema",
+          "fecha": "2026-09-24T10:00:00Z"
+        }
+      ],
+      "alumnos": [
+        {
+          "codigo": "DEMO-ASIR1-01",
+          "nombre": "Estudiante 01 · ASIR1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 2,
+              "observacion": "Necesita apoyo para completar la comprobación."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 2,
+              "observacion": "Necesita apoyo para completar la comprobación."
+            }
+          ],
+          "refuerzo": true
+        },
+        {
+          "codigo": "DEMO-ASIR1-02",
+          "nombre": "Estudiante 02 · ASIR1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 2,
+              "observacion": "Necesita apoyo para completar la comprobación."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 2,
+              "observacion": "Necesita apoyo para completar la comprobación."
+            }
+          ],
+          "refuerzo": true
+        },
+        {
+          "codigo": "DEMO-ASIR1-03",
+          "nombre": "Estudiante 03 · ASIR1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 2,
+              "observacion": "Necesita apoyo para completar la comprobación."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 1,
+              "observacion": "Necesita apoyo para completar la comprobación."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-ASIR1-04",
+          "nombre": "Estudiante 04 · ASIR1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 2,
+              "observacion": "Necesita apoyo para completar la comprobación."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-ASIR1-05",
+          "nombre": "Estudiante 05 · ASIR1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 2,
+              "observacion": "Necesita apoyo para completar la comprobación."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-ASIR1-06",
+          "nombre": "Estudiante 06 · ASIR1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 2,
+              "observacion": "Necesita apoyo para completar la comprobación."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-ASIR1-07",
+          "nombre": "Estudiante 07 · ASIR1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 2,
+              "observacion": "Necesita apoyo para completar la comprobación."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-ASIR1-08",
+          "nombre": "Estudiante 08 · ASIR1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 2,
+              "observacion": "Necesita apoyo para completar la comprobación."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-ASIR1-09",
+          "nombre": "Estudiante 09 · ASIR1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-ASIR1-10",
+          "nombre": "Estudiante 10 · ASIR1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-ASIR1-11",
+          "nombre": "Estudiante 11 · ASIR1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-ASIR1-12",
+          "nombre": "Estudiante 12 · ASIR1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-ASIR1-13",
+          "nombre": "Estudiante 13 · ASIR1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-ASIR1-14",
+          "nombre": "Estudiante 14 · ASIR1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-ASIR1-15",
+          "nombre": "Estudiante 15 · ASIR1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-ASIR1-16",
+          "nombre": "Estudiante 16 · ASIR1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-ASIR1-17",
+          "nombre": "Estudiante 17 · ASIR1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-ASIR1-18",
+          "nombre": "Estudiante 18 · ASIR1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-ASIR1-19",
+          "nombre": "Estudiante 19 · ASIR1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-ASIR1-20",
+          "nombre": "Estudiante 20 · ASIR1",
+          "valoraciones": [],
+          "refuerzo": false
+        }
+      ]
+    },
+    {
+      "clave": "DAM1",
+      "grupo": "1.º DAM A",
+      "ciclo": "Desarrollo de Aplicaciones Multiplataforma",
+      "modulo": "0373",
+      "indicador": "Validar la estructura del XML antes de entregar",
+      "ejercicios": [
+        {
+          "titulo": "Validar el catálogo XML de una aplicación",
+          "fecha": "2026-09-10T10:00:00Z"
+        },
+        {
+          "titulo": "Corregir un catálogo que incumple el esquema",
+          "fecha": "2026-09-24T10:00:00Z"
+        }
+      ],
+      "alumnos": [
+        {
+          "codigo": "DEMO-DAM1-01",
+          "nombre": "Estudiante 01 · DAM1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 2,
+              "observacion": "Necesita apoyo para completar la comprobación."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 2,
+              "observacion": "Necesita apoyo para completar la comprobación."
+            }
+          ],
+          "refuerzo": true
+        },
+        {
+          "codigo": "DEMO-DAM1-02",
+          "nombre": "Estudiante 02 · DAM1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 2,
+              "observacion": "Necesita apoyo para completar la comprobación."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 2,
+              "observacion": "Necesita apoyo para completar la comprobación."
+            }
+          ],
+          "refuerzo": true
+        },
+        {
+          "codigo": "DEMO-DAM1-03",
+          "nombre": "Estudiante 03 · DAM1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 2,
+              "observacion": "Necesita apoyo para completar la comprobación."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 1,
+              "observacion": "Necesita apoyo para completar la comprobación."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAM1-04",
+          "nombre": "Estudiante 04 · DAM1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 2,
+              "observacion": "Necesita apoyo para completar la comprobación."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAM1-05",
+          "nombre": "Estudiante 05 · DAM1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 2,
+              "observacion": "Necesita apoyo para completar la comprobación."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAM1-06",
+          "nombre": "Estudiante 06 · DAM1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 2,
+              "observacion": "Necesita apoyo para completar la comprobación."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAM1-07",
+          "nombre": "Estudiante 07 · DAM1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 2,
+              "observacion": "Necesita apoyo para completar la comprobación."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAM1-08",
+          "nombre": "Estudiante 08 · DAM1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 2,
+              "observacion": "Necesita apoyo para completar la comprobación."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAM1-09",
+          "nombre": "Estudiante 09 · DAM1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAM1-10",
+          "nombre": "Estudiante 10 · DAM1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAM1-11",
+          "nombre": "Estudiante 11 · DAM1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAM1-12",
+          "nombre": "Estudiante 12 · DAM1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAM1-13",
+          "nombre": "Estudiante 13 · DAM1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAM1-14",
+          "nombre": "Estudiante 14 · DAM1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAM1-15",
+          "nombre": "Estudiante 15 · DAM1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAM1-16",
+          "nombre": "Estudiante 16 · DAM1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAM1-17",
+          "nombre": "Estudiante 17 · DAM1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAM1-18",
+          "nombre": "Estudiante 18 · DAM1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAM1-19",
+          "nombre": "Estudiante 19 · DAM1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAM1-20",
+          "nombre": "Estudiante 20 · DAM1",
+          "valoraciones": [],
+          "refuerzo": false
+        }
+      ]
+    },
+    {
+      "clave": "DAW1",
+      "grupo": "1.º DAW A",
+      "ciclo": "Desarrollo de Aplicaciones Web",
+      "modulo": "0373",
+      "indicador": "Validar la estructura del XML antes de entregar",
+      "ejercicios": [
+        {
+          "titulo": "Validar el XML de un catálogo web",
+          "fecha": "2026-09-10T10:00:00Z"
+        },
+        {
+          "titulo": "Revisar el XML de una segunda colección",
+          "fecha": "2026-09-24T10:00:00Z"
+        }
+      ],
+      "alumnos": [
+        {
+          "codigo": "DEMO-DAW1-01",
+          "nombre": "Estudiante 01 · DAW1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 2,
+              "observacion": "Necesita apoyo para completar la comprobación."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 2,
+              "observacion": "Necesita apoyo para completar la comprobación."
+            }
+          ],
+          "refuerzo": true
+        },
+        {
+          "codigo": "DEMO-DAW1-02",
+          "nombre": "Estudiante 02 · DAW1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 2,
+              "observacion": "Necesita apoyo para completar la comprobación."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 2,
+              "observacion": "Necesita apoyo para completar la comprobación."
+            }
+          ],
+          "refuerzo": true
+        },
+        {
+          "codigo": "DEMO-DAW1-03",
+          "nombre": "Estudiante 03 · DAW1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 2,
+              "observacion": "Necesita apoyo para completar la comprobación."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 1,
+              "observacion": "Necesita apoyo para completar la comprobación."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAW1-04",
+          "nombre": "Estudiante 04 · DAW1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 2,
+              "observacion": "Necesita apoyo para completar la comprobación."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAW1-05",
+          "nombre": "Estudiante 05 · DAW1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 2,
+              "observacion": "Necesita apoyo para completar la comprobación."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAW1-06",
+          "nombre": "Estudiante 06 · DAW1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 2,
+              "observacion": "Necesita apoyo para completar la comprobación."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAW1-07",
+          "nombre": "Estudiante 07 · DAW1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 2,
+              "observacion": "Necesita apoyo para completar la comprobación."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAW1-08",
+          "nombre": "Estudiante 08 · DAW1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 2,
+              "observacion": "Necesita apoyo para completar la comprobación."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAW1-09",
+          "nombre": "Estudiante 09 · DAW1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAW1-10",
+          "nombre": "Estudiante 10 · DAW1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAW1-11",
+          "nombre": "Estudiante 11 · DAW1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAW1-12",
+          "nombre": "Estudiante 12 · DAW1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAW1-13",
+          "nombre": "Estudiante 13 · DAW1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAW1-14",
+          "nombre": "Estudiante 14 · DAW1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAW1-15",
+          "nombre": "Estudiante 15 · DAW1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAW1-16",
+          "nombre": "Estudiante 16 · DAW1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAW1-17",
+          "nombre": "Estudiante 17 · DAW1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAW1-18",
+          "nombre": "Estudiante 18 · DAW1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAW1-19",
+          "nombre": "Estudiante 19 · DAW1",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAW1-20",
+          "nombre": "Estudiante 20 · DAW1",
+          "valoraciones": [],
+          "refuerzo": false
+        }
+      ]
+    },
+    {
+      "clave": "DAMA2",
+      "grupo": "2.º DAM A",
+      "ciclo": "Desarrollo de Aplicaciones Multiplataforma",
+      "modulo": "0488",
+      "indicador": "Comprobar el funcionamiento del formulario con entradas de prueba",
+      "ejercicios": [
+        {
+          "titulo": "Probar un formulario de alta",
+          "fecha": "2026-09-10T10:00:00Z"
+        },
+        {
+          "titulo": "Revisar accesibilidad y validación del formulario",
+          "fecha": "2026-09-24T10:00:00Z"
+        }
+      ],
+      "alumnos": [
+        {
+          "codigo": "DEMO-DAMA2-01",
+          "nombre": "Estudiante 01 · DAMA2",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 2,
+              "observacion": "Necesita apoyo para completar la comprobación."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 2,
+              "observacion": "Necesita apoyo para completar la comprobación."
+            }
+          ],
+          "refuerzo": true
+        },
+        {
+          "codigo": "DEMO-DAMA2-02",
+          "nombre": "Estudiante 02 · DAMA2",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 2,
+              "observacion": "Necesita apoyo para completar la comprobación."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 2,
+              "observacion": "Necesita apoyo para completar la comprobación."
+            }
+          ],
+          "refuerzo": true
+        },
+        {
+          "codigo": "DEMO-DAMA2-03",
+          "nombre": "Estudiante 03 · DAMA2",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 2,
+              "observacion": "Necesita apoyo para completar la comprobación."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 1,
+              "observacion": "Necesita apoyo para completar la comprobación."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAMA2-04",
+          "nombre": "Estudiante 04 · DAMA2",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 2,
+              "observacion": "Necesita apoyo para completar la comprobación."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAMA2-05",
+          "nombre": "Estudiante 05 · DAMA2",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAMA2-06",
+          "nombre": "Estudiante 06 · DAMA2",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAMA2-07",
+          "nombre": "Estudiante 07 · DAMA2",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAMA2-08",
+          "nombre": "Estudiante 08 · DAMA2",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAMA2-09",
+          "nombre": "Estudiante 09 · DAMA2",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAMA2-10",
+          "nombre": "Estudiante 10 · DAMA2",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAMA2-11",
+          "nombre": "Estudiante 11 · DAMA2",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAMA2-12",
+          "nombre": "Estudiante 12 · DAMA2",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAMA2-13",
+          "nombre": "Estudiante 13 · DAMA2",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAMA2-14",
+          "nombre": "Estudiante 14 · DAMA2",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAMA2-15",
+          "nombre": "Estudiante 15 · DAMA2",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAMA2-16",
+          "nombre": "Estudiante 16 · DAMA2",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAMA2-17",
+          "nombre": "Estudiante 17 · DAMA2",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAMA2-18",
+          "nombre": "Estudiante 18 · DAMA2",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAMA2-19",
+          "nombre": "Estudiante 19 · DAMA2",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAMA2-20",
+          "nombre": "Estudiante 20 · DAMA2",
+          "valoraciones": [],
+          "refuerzo": false
+        }
+      ]
+    },
+    {
+      "clave": "DAMB2",
+      "grupo": "2.º DAM B",
+      "ciclo": "Desarrollo de Aplicaciones Multiplataforma",
+      "modulo": "0486",
+      "indicador": "Verificar las operaciones de lectura y escritura",
+      "ejercicios": [
+        {
+          "titulo": "Guardar y recuperar pedidos",
+          "fecha": "2026-09-10T10:00:00Z"
+        },
+        {
+          "titulo": "Comprobar la persistencia tras cambiar un pedido",
+          "fecha": "2026-09-24T10:00:00Z"
+        }
+      ],
+      "alumnos": [
+        {
+          "codigo": "DEMO-DAMB2-01",
+          "nombre": "Estudiante 01 · DAMB2",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 2,
+              "observacion": "Necesita apoyo para completar la comprobación."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 2,
+              "observacion": "Necesita apoyo para completar la comprobación."
+            }
+          ],
+          "refuerzo": true
+        },
+        {
+          "codigo": "DEMO-DAMB2-02",
+          "nombre": "Estudiante 02 · DAMB2",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 2,
+              "observacion": "Necesita apoyo para completar la comprobación."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 2,
+              "observacion": "Necesita apoyo para completar la comprobación."
+            }
+          ],
+          "refuerzo": true
+        },
+        {
+          "codigo": "DEMO-DAMB2-03",
+          "nombre": "Estudiante 03 · DAMB2",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 2,
+              "observacion": "Necesita apoyo para completar la comprobación."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 1,
+              "observacion": "Necesita apoyo para completar la comprobación."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAMB2-04",
+          "nombre": "Estudiante 04 · DAMB2",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 2,
+              "observacion": "Necesita apoyo para completar la comprobación."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAMB2-05",
+          "nombre": "Estudiante 05 · DAMB2",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAMB2-06",
+          "nombre": "Estudiante 06 · DAMB2",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAMB2-07",
+          "nombre": "Estudiante 07 · DAMB2",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAMB2-08",
+          "nombre": "Estudiante 08 · DAMB2",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAMB2-09",
+          "nombre": "Estudiante 09 · DAMB2",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAMB2-10",
+          "nombre": "Estudiante 10 · DAMB2",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAMB2-11",
+          "nombre": "Estudiante 11 · DAMB2",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAMB2-12",
+          "nombre": "Estudiante 12 · DAMB2",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAMB2-13",
+          "nombre": "Estudiante 13 · DAMB2",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAMB2-14",
+          "nombre": "Estudiante 14 · DAMB2",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAMB2-15",
+          "nombre": "Estudiante 15 · DAMB2",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAMB2-16",
+          "nombre": "Estudiante 16 · DAMB2",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAMB2-17",
+          "nombre": "Estudiante 17 · DAMB2",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAMB2-18",
+          "nombre": "Estudiante 18 · DAMB2",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAMB2-19",
+          "nombre": "Estudiante 19 · DAMB2",
+          "valoraciones": [
+            {
+              "ejercicio": 0,
+              "nivel": 3,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            },
+            {
+              "ejercicio": 1,
+              "nivel": 4,
+              "observacion": "Completa y documenta la comprobación de forma autónoma."
+            }
+          ],
+          "refuerzo": false
+        },
+        {
+          "codigo": "DEMO-DAMB2-20",
+          "nombre": "Estudiante 20 · DAMB2",
+          "valoraciones": [],
+          "refuerzo": false
+        }
+      ]
+    }
+  ]
+}

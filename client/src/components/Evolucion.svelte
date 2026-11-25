@@ -5,6 +5,7 @@ import { api } from '../lib/api.js';
   export let historial = [];
   export let imparticionId = '';
   export let nombreModulo = '';
+  export let moduloId = null;
   let asociaciones = [];
   let cargandoCurriculo = false;
   let errorCurriculo = '';
@@ -39,7 +40,7 @@ import { api } from '../lib/api.js';
 }
 
 
-  $: asociacionesModulo = asociaciones.filter(a => !nombreModulo || a.criterio?.resultado?.modulo?.nombre?.trim().toLocaleLowerCase('es') === nombreModulo.trim().toLocaleLowerCase('es'));
+  $: asociacionesModulo = asociaciones.filter(a => moduloId != null ? Number(a.criterio?.resultado?.moduloId) === Number(moduloId) : !nombreModulo || a.criterio?.resultado?.modulo?.nombre?.trim().toLocaleLowerCase('es') === nombreModulo.trim().toLocaleLowerCase('es'));
 
   let indicadorElegido = '';
   const W = 600, H = 190, m = { l: 32, r: 15, t: 14, b: 27 };
@@ -50,7 +51,16 @@ import { api } from '../lib/api.js';
   $: if (indicadorElegido && !indicadores.some(i => String(i.id) === indicadorElegido)) indicadorElegido = '';
   $: indicadorActivo = indicadorElegido || (indicadores[0] ? String(indicadores[0].id) : '');
   $: valoraciones = historialModulo.filter(v => Number(v.indicadorId) === Number(indicadorActivo)).sort((a, b) => new Date(a.fecha) - new Date(b.fecha) || a.id - b.id);
-  $: puntos = valoraciones.map((v, i) => ({ ...v, x: x(i, valoraciones.length), y: y(v.nivel) }));
+  const dia = new Intl.DateTimeFormat('es-ES', {day:'2-digit', month:'short'});
+  function situar(observaciones) {
+    const inicio = Date.parse(observaciones[0]?.fecha);
+    const duracion = Date.parse(observaciones.at(-1)?.fecha) - inicio;
+    return observaciones.map((v, i) => ({
+      ...v, x: duracion > 0 ? m.l + (Date.parse(v.fecha) - inicio) * (W - m.l - m.r) / duracion
+        : x(i, observaciones.length), y: y(v.nivel),
+    }));
+  }
+  $: puntos = situar(valoraciones);
   $: trazado = puntos.map((p, i) => `${i ? 'L' : 'M'} ${p.x} ${p.y}`).join(' ');
   $: primera = valoraciones[0] ?? null;
   $: ultima = valoraciones[valoraciones.length - 1] ?? null;
@@ -78,12 +88,16 @@ import { api } from '../lib/api.js';
   {:else if !puntos.length}
     <p class="nota">No hay observaciones para este indicador.</p>
   {:else}
+    <p><strong>{tendencia}</strong> · Último nivel {ultima.nivel}/4 · {valoraciones.length} observaciones</p>
+    {#if ultima.evidencia?.actividad}
+      <p class="nota">Último ejercicio: {ultima.evidencia.actividad.titulo}</p>
+    {/if}
     <div class="grafico-contenedor">
       <svg
         viewBox={`0 0 ${W} ${H}`}
         preserveAspectRatio="xMidYMid meet"
         role="img"
-        aria-label="Evolución por orden de observación del indicador seleccionado, con niveles de uno a cuatro"
+        aria-label="Evolución cronológica del indicador seleccionado, con niveles de uno a cuatro"
       >
         {#each [1, 2, 3, 4] as nivel}
           <line
@@ -108,7 +122,7 @@ import { api } from '../lib/api.js';
             stroke="#C95622"
             stroke-width="2.5"
           />{/if}
-        {#each puntos as p, i (p.id)}
+        {#each puntos as p (p.id)}
           <circle
             cx={p.x}
             cy={p.y}
@@ -118,19 +132,14 @@ import { api } from '../lib/api.js';
             stroke-width="1.5"
           >
             <title
-              >{new Date(p.fecha).toLocaleString('es-ES')} — Nivel {p.nivel}/4</title
+              >{new Date(p.fecha).toLocaleString('es-ES')} — Nivel {p.nivel}/4{p.evidencia?.actividad ? ` · ${p.evidencia.actividad.titulo}` : ''}</title>
             >
           </circle>
-          {#if puntos.length <= 8 || i === 0 || i === puntos.length - 1}
-            <text
-              x={p.x}
-              y={H - 8}
-              text-anchor="middle"
-              font-size="11"
-              fill="#795F50">{i + 1}</text
-            >
-          {/if}
         {/each}
+        <text x={m.l} y={H - 4} text-anchor="start">{dia.format(new Date(primera.fecha))}</text>
+        {#if puntos.length > 1}
+          <text x={W - m.r} y={H - 4} text-anchor="end">{dia.format(new Date(ultima.fecha))}</text>
+        {/if}
       </svg>
     </div>
     <div

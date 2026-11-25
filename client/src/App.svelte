@@ -381,7 +381,7 @@
     errorValoracion = '';
   }
 
-  async function guardarValoracion() {
+  async function guardarValoracion(ejercicio = null) {
     mensajeValoracion = '';
     errorValoracion = '';
     const estudianteId = Number(estudianteElegido);
@@ -417,7 +417,8 @@
         indicadorId,
         nivel,
         observacion: observacionValoracion.trim(),
-        evidenciaId,
+        evidenciaId: ejercicio ? null : evidenciaId,
+        ejercicio,
       });
       observacionValoracion = '';
       nivelValoracion = '';
@@ -427,6 +428,7 @@
         cargarSeguimiento(),
       ]);
       mensajeValoracion = 'Valoración registrada correctamente';
+      return true;
     } catch (error) {
       errorValoracion = error.message;
     } finally {
